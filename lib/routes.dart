@@ -12,6 +12,7 @@ import 'package:petcare/features/labs/pet_health_screen.dart';
 import 'package:petcare/features/labs/chart_screen.dart';
 import 'package:petcare/features/records/records_chart_screen.dart';
 import 'package:petcare/ui/home.dart';
+import 'package:petcare/data/services/admob_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
 
@@ -22,6 +23,7 @@ final router = GoRouter(
   initialLocation: '/login',
   // Listen to auth state changes and rebuild the router when they occur.
   refreshListenable: _authChangeNotifier,
+  observers: [AdMobRouteObserver()],
   routes: [
     GoRoute(
       path: '/',
@@ -134,5 +136,17 @@ class GoRouterRefreshStream extends ChangeNotifier {
   void dispose() {
     _subscription.cancel();
     super.dispose();
+  }
+}
+
+// 화면 전환 감지하여 광고 표시
+class AdMobRouteObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    // 로그인/회원가입 화면은 제외
+    if (route.settings.name != '/login' && route.settings.name != '/signup') {
+      AdMobService.onScreenTransition();
+    }
   }
 }

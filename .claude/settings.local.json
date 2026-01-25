@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter pub get:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(flutter build:*)",
+      "Bash(flutter clean:*)",
+      "Bash(dir /s /b \"%USERPROFILE%\\\\.gradle\\\\caches\")",
+      "Bash(findstr:*)",
+      "Bash(./gradlew:*)",
+      "Bash(flutter devices:*)",
+      "Bash(flutter run:*)"
+    ]
+  }
+}

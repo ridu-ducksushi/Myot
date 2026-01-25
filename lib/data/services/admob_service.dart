@@ -6,43 +6,57 @@ class AdMobService {
   factory AdMobService() => _instance;
   AdMobService._internal();
 
-  // 테스트용 광고 단위 ID (실제 배포 시 변경 필요)
-  static String get _bannerAdUnitId => Platform.isAndroid
-      ? 'ca-app-pub-3940256099942544/6300978111' // Android 테스트 ID
-      : 'ca-app-pub-3940256099942544/2934735716'; // iOS 테스트 ID
-
+  // 전면 광고 단위 ID
   static String get _interstitialAdUnitId => Platform.isAndroid
-      ? 'ca-app-pub-3940256099942544/1033173712' // Android 테스트 ID
+      ? 'ca-app-pub-9029590341474152/1976770844' // Android 실제 ID
       : 'ca-app-pub-3940256099942544/4411468910'; // iOS 테스트 ID
 
-  static String get _rewardedAdUnitId => Platform.isAndroid
-      ? 'ca-app-pub-3940256099942544/5224354917' // Android 테스트 ID
-      : 'ca-app-pub-3940256099942544/1712485313'; // iOS 테스트 ID
+  // 화면 전환 카운터 및 광고 쿨다운
+  static int _screenTransitionCount = 0;
+  static const int _adShowInterval = 5; // 5회 전환마다 광고
+  static DateTime? _lastAdShownTime;
+  static const Duration _adCooldown = Duration(minutes: 2); // 2분 쿨다운
 
   // AdMob 초기화
   static Future<void> initialize() async {
     await MobileAds.instance.initialize();
+    loadInterstitialAd(); // 앱 시작 시 광고 미리 로드
   }
 
-  // 배너 광고 생성
-  static BannerAd createBannerAd() {
-    return BannerAd(
-      adUnitId: _bannerAdUnitId,
-      size: AdSize.banner,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (ad) {
-          print('배너 광고 로드 성공');
-        },
-        onAdFailedToLoad: (ad, error) {
-          print('배너 광고 로드 실패: $error');
-          ad.dispose();
-        },
-      ),
-    );
+  // 화면 전환 시 호출
+  static void onScreenTransition() {
+    _screenTransitionCount++;
+
+    if (_shouldShowAd()) {
+      showInterstitialAd();
+      _screenTransitionCount = 0;
+    }
   }
 
-  // 전면 광고 생성
+  // 광고 표시 조건 확인
+  static bool _shouldShowAd() {
+    // 5회 전환 미만이면 표시 안 함
+    if (_screenTransitionCount < _adShowInterval) {
+      return false;
+    }
+
+    // 마지막 광고 후 2분이 지나지 않았으면 표시 안 함
+    if (_lastAdShownTime != null) {
+      final elapsed = DateTime.now().difference(_lastAdShownTime!);
+      if (elapsed < _adCooldown) {
+        return false;
+      }
+    }
+
+    // 광고가 준비되지 않았으면 표시 안 함
+    if (!_isInterstitialAdReady) {
+      return false;
+    }
+
+    return true;
+  }
+
+  // 전면 광고
   static InterstitialAd? _interstitialAd;
   static bool _isInterstitialAdReady = false;
 
@@ -54,10 +68,8 @@ class AdMobService {
         onAdLoaded: (ad) {
           _interstitialAd = ad;
           _isInterstitialAdReady = true;
-          print('전면 광고 로드 성공');
         },
         onAdFailedToLoad: (error) {
-          print('전면 광고 로드 실패: $error');
           _isInterstitialAdReady = false;
         },
       ),
@@ -68,73 +80,25 @@ class AdMobService {
     if (_isInterstitialAdReady && _interstitialAd != null) {
       _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
         onAdShowedFullScreenContent: (ad) {
-          print('전면 광고 표시됨');
+          _lastAdShownTime = DateTime.now(); // 광고 표시 시간 기록
         },
         onAdDismissedFullScreenContent: (ad) {
-          print('전면 광고 닫힘');
           ad.dispose();
           _isInterstitialAdReady = false;
           loadInterstitialAd(); // 다음 광고 미리 로드
         },
         onAdFailedToShowFullScreenContent: (ad, error) {
-          print('전면 광고 표시 실패: $error');
           ad.dispose();
           _isInterstitialAdReady = false;
+          loadInterstitialAd();
         },
       );
       _interstitialAd!.show();
     }
   }
 
-  // 보상형 광고 생성
-  static RewardedAd? _rewardedAd;
-  static bool _isRewardedAdReady = false;
-
-  static void loadRewardedAd() {
-    RewardedAd.load(
-      adUnitId: _rewardedAdUnitId,
-      request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) {
-          _rewardedAd = ad;
-          _isRewardedAdReady = true;
-          print('보상형 광고 로드 성공');
-        },
-        onAdFailedToLoad: (error) {
-          print('보상형 광고 로드 실패: $error');
-          _isRewardedAdReady = false;
-        },
-      ),
-    );
-  }
-
-  static void showRewardedAd({required Function(RewardItem) onRewarded}) {
-    if (_isRewardedAdReady && _rewardedAd != null) {
-      _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
-        onAdShowedFullScreenContent: (ad) {
-          print('보상형 광고 표시됨');
-        },
-        onAdDismissedFullScreenContent: (ad) {
-          print('보상형 광고 닫힘');
-          ad.dispose();
-          _isRewardedAdReady = false;
-          loadRewardedAd(); // 다음 광고 미리 로드
-        },
-        onAdFailedToShowFullScreenContent: (ad, error) {
-          print('보상형 광고 표시 실패: $error');
-          ad.dispose();
-          _isRewardedAdReady = false;
-        },
-      );
-      _rewardedAd!.show(onUserEarnedReward: (ad, reward) {
-        onRewarded(reward);
-      });
-    }
-  }
-
   // 광고 정리
   static void dispose() {
     _interstitialAd?.dispose();
-    _rewardedAd?.dispose();
   }
 }
