@@ -1662,13 +1662,12 @@ class _EditSuppliesSheetState extends ConsumerState<_EditSuppliesSheet> {
                         _setupAutoScroll(scrollController, 'litter', builderContext);
                       });
                       
-                      return Expanded(
+                      return Flexible(
                         child: ListView(
                           controller: scrollController,
-                          padding: EdgeInsets.only(
-                            top: 8,
-                            bottom: MediaQuery.of(builderContext).viewInsets.bottom + 16,
-                          ),
+                          shrinkWrap: true,
+                          physics: const ClampingScrollPhysics(),
+                          padding: const EdgeInsets.only(top: 8, bottom: 16),
                           children: [
                             AppTextField(
                               controller: _dryFoodController,
