@@ -683,7 +683,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
                 child: _buildSupplyItem(
                 context,
                 icon: Icons.cleaning_services,
-                label: '모래',
+                label: 'supplies.litter'.tr(),
                   value: _currentSupplies?.litter,
                 ),
               ),
