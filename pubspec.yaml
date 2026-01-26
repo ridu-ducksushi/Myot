@@ -90,7 +90,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  
+
+  # App Icon
+  flutter_launcher_icons: ^0.14.3
+
   # Code Generation
   build_runner: ^2.4.7
   freezed: ^2.4.6
@@ -144,3 +147,10 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon/AppIcon.png"
+  adaptive_icon_foreground: "assets/images/app_icon/AppIcon.png"
+  adaptive_icon_background: "#FFFFFF"

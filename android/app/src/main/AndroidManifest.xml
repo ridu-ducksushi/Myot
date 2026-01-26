@@ -20,7 +20,7 @@
     <application
         android:label="묘트"
         android:name="${applicationName}"
-        android:icon="@mipmap/launcher_icon">
+        android:icon="@mipmap/ic_launcher">
         
         <!-- AdMob 설정 -->
         <meta-data
