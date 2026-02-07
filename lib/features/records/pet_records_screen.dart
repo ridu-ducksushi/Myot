@@ -84,28 +84,6 @@ class _PetRecordsScreenState extends ConsumerState<PetRecordsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(recordsProvider.notifier).loadRecords(widget.petId);
     });
-    _loadSelectedDate();
-  }
-
-  Future<void> _loadSelectedDate() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final iso = prefs.getString('selected_date_${widget.petId}');
-      if (iso != null && iso.isNotEmpty) {
-        final parts = iso.split('-');
-        if (parts.length == 3) {
-          setState(() {
-            _selectedDate = DateTime(
-              int.parse(parts[0]),
-              int.parse(parts[1]),
-              int.parse(parts[2]),
-            );
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint('Failed to load selected date: $e');
-    }
   }
 
   Future<void> _saveSelectedDate(DateTime date) async {
@@ -113,7 +91,7 @@ class _PetRecordsScreenState extends ConsumerState<PetRecordsScreen> {
       final prefs = await SharedPreferences.getInstance();
       final iso =
           '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      await prefs.setString('selected_date_${widget.petId}', iso);
+      await prefs.setString('records_selected_date_${widget.petId}', iso);
     } catch (e) {
       debugPrint('Failed to save selected date: $e');
     }
