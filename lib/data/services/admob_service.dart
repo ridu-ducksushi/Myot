@@ -1,15 +1,25 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../../utils/app_logger.dart';
 
 class AdMobService {
+  static const String _tag = 'AdMob';
+
   static final AdMobService _instance = AdMobService._internal();
   factory AdMobService() => _instance;
   AdMobService._internal();
 
-  // 전면 광고 단위 ID
-  static String get _interstitialAdUnitId => Platform.isAndroid
-      ? 'ca-app-pub-9029590341474152/1976770844' // Android 실제 ID
-      : 'ca-app-pub-3940256099942544/4411468910'; // iOS 테스트 ID
+  // 전면 광고 단위 ID (kDebugMode 기반 자동 분리)
+  static String get _interstitialAdUnitId {
+    if (Platform.isAndroid) {
+      return kDebugMode
+          ? 'ca-app-pub-3940256099942544/1033173712'  // Android 테스트 ID
+          : 'ca-app-pub-9029590341474152/1976770844'; // Android 프로덕션 ID
+    } else {
+      return 'ca-app-pub-3940256099942544/4411468910'; // iOS 테스트 ID
+    }
+  }
 
   // 화면 전환 카운터 및 광고 쿨다운
   static int _screenTransitionCount = 0;
@@ -26,6 +36,7 @@ class AdMobService {
   // 화면 전환 시 호출
   static void onScreenTransition() {
     _screenTransitionCount++;
+    AppLogger.d(_tag, '화면 전환 카운트: $_screenTransitionCount/$_adShowInterval');
 
     if (_shouldShowAd()) {
       showInterstitialAd();
@@ -61,6 +72,7 @@ class AdMobService {
   static bool _isInterstitialAdReady = false;
 
   static void loadInterstitialAd() {
+    AppLogger.d(_tag, '전면 광고 로드 시작 (ID: $_interstitialAdUnitId)');
     InterstitialAd.load(
       adUnitId: _interstitialAdUnitId,
       request: const AdRequest(),
@@ -68,15 +80,18 @@ class AdMobService {
         onAdLoaded: (ad) {
           _interstitialAd = ad;
           _isInterstitialAdReady = true;
+          AppLogger.d(_tag, '전면 광고 로드 성공');
         },
         onAdFailedToLoad: (error) {
           _isInterstitialAdReady = false;
+          AppLogger.e(_tag, '전면 광고 로드 실패', error);
         },
       ),
     );
   }
 
   static void showInterstitialAd() {
+    AppLogger.d(_tag, '전면 광고 표시 시도 (ready: $_isInterstitialAdReady)');
     if (_isInterstitialAdReady && _interstitialAd != null) {
       _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
         onAdShowedFullScreenContent: (ad) {

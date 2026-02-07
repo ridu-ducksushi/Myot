@@ -572,6 +572,8 @@ class _ChartScreenState extends ConsumerState<ChartScreen> {
     final softColor = colorScheme.primaryContainer.withOpacity(0.6);
     final outlineColor = colorScheme.outlineVariant.withOpacity(0.35);
 
+    final description = LabReferenceRanges.getDescription(testItem);
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: DecoratedBox(
@@ -588,7 +590,7 @@ class _ChartScreenState extends ConsumerState<ChartScreen> {
             ),
           ],
         ),
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -801,6 +803,31 @@ class _ChartScreenState extends ConsumerState<ChartScreen> {
                 ),
               ),
               ),
+              if (description.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Divider(color: colorScheme.outlineVariant.withOpacity(0.3)),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 18,
+                      color: colorScheme.onSurface.withOpacity(0.5),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        description,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurface.withOpacity(0.6),
+                              height: 1.5,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
