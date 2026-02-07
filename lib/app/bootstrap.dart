@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:petcare/data/local/database.dart';
+import 'package:petcare/utils/app_logger.dart';
 
 /// Bootstrap the application with necessary initializations
 class AppBootstrap {
@@ -13,19 +14,13 @@ class AppBootstrap {
       // Initialize local database
       await LocalDatabase.initialize();
       
-      if (kDebugMode) {
-        print('✅ Local database initialized');
-      }
+      AppLogger.d('Bootstrap', 'Local database initialized');
 
       _initialized = true;
       
-      if (kDebugMode) {
-        print('✅ App bootstrap completed successfully');
-      }
+      AppLogger.d('Bootstrap', 'App bootstrap completed successfully');
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ App bootstrap failed: $e');
-      }
+      AppLogger.e('Bootstrap', 'App bootstrap failed', e);
       rethrow;
     }
   }
@@ -37,13 +32,9 @@ class AppBootstrap {
     try {
       await LocalDatabase.instance.close();
       
-      if (kDebugMode) {
-        print('✅ App cleanup completed');
-      }
+      AppLogger.d('Bootstrap', 'App cleanup completed');
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ App cleanup failed: $e');
-      }
+      AppLogger.e('Bootstrap', 'App cleanup failed', e);
     }
   }
 }

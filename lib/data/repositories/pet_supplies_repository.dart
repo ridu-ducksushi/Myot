@@ -1,5 +1,6 @@
 import 'package:petcare/data/models/pet_supplies.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:petcare/utils/app_logger.dart';
 
 class PetSuppliesRepository {
   final SupabaseClient _client;
@@ -36,7 +37,7 @@ class PetSuppliesRepository {
 
       return PetSupplies.fromJson(_fromSupabaseRow(response));
     } catch (e) {
-      print('❌ Error getting supplies by date: $e');
+      AppLogger.e('SuppliesRepo', 'Error getting supplies by date', e);
       return null;
     }
   }
@@ -59,7 +60,7 @@ class PetSuppliesRepository {
 
       return filtered;
     } catch (e) {
-      print('❌ Error getting supplies record dates: $e');
+      AppLogger.e('SuppliesRepo', 'Error getting supplies record dates', e);
       return [];
     }
   }
@@ -110,7 +111,7 @@ class PetSuppliesRepository {
         return PetSupplies.fromJson(_fromSupabaseRow(response));
       }
     } catch (e) {
-      print('❌ Error saving supplies: $e');
+      AppLogger.e('SuppliesRepo', 'Error saving supplies', e);
       rethrow;
     }
   }
@@ -123,7 +124,7 @@ class PetSuppliesRepository {
           .delete()
           .eq('id', id);
     } catch (e) {
-      print('❌ Error deleting supplies: $e');
+      AppLogger.e('SuppliesRepo', 'Error deleting supplies', e);
       rethrow;
     }
   }

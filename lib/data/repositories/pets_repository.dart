@@ -2,16 +2,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:petcare/data/models/pet.dart';
 import 'package:petcare/data/local/database.dart';
+import 'package:petcare/data/repositories/base_repository.dart';
+import 'package:petcare/utils/app_logger.dart';
 
 /// Repository for pet data management
-class PetsRepository {
+class PetsRepository extends BaseRepository {
   PetsRepository({
-    required this.supabase,
-    required this.localDb,
+    required super.supabase,
+    required super.localDb,
   });
 
-  final SupabaseClient supabase;
-  final LocalDatabase localDb;
+  @override
+  String get tag => 'PetsRepo';
 
   Map<String, dynamic> _toSupabaseRow(Pet pet, String ownerId) {
     final Map<String, dynamic> row = {
@@ -89,7 +91,7 @@ class PetsRepository {
     try {
       // Try to fetch from Supabase first
       final user = supabase.auth.currentUser;
-      print('🔍 getAllPets - 현재 사용자: ${user?.email ?? 'null'}');
+      AppLogger.d('PetsRepo', 'getAllPets - 현재 사용자: ${user?.email ?? 'null'}');
       
       if (user != null) {
         try {
@@ -103,7 +105,7 @@ class PetsRepository {
               .map((row) => _fromSupabaseRow(row as Map<String, dynamic>))
               .toList();
 
-          print('✅ Supabase에서 ${pets.length}개 펫 로드');
+          AppLogger.d('PetsRepo', 'Supabase에서 ${pets.length}개 펫 로드');
 
           // Cache locally
           for (final pet in pets) {
@@ -117,7 +119,7 @@ class PetsRepository {
           await _migrateLocalGuestPets(user.id);
 
           final localPets = await localDb.getAllPets();
-          print('🧭 로컬 전체 펫 목록 (${localPets.length}) → ' + localPets.map((p) => '[${p.ownerId}] ${p.name}').take(10).join(', '));
+          AppLogger.d('PetsRepo', '로컬 전체 펫 목록 (${localPets.length}) → ' + localPets.map((p) => '[${p.ownerId}] ${p.name}').take(10).join(', '));
           final filteredPets = localPets.where((pet) {
             if (pet.ownerId == user.id) return true;
             // 마이그레이션 직후 반영 지연 대비: 임시로 local-user/guest도 포함
@@ -125,20 +127,20 @@ class PetsRepository {
             if (pet.ownerId == 'guest') return true;
             return false;
           }).toList();
-          print('🧭 필터 후 펫 목록 (${filteredPets.length}) → ' + filteredPets.map((p) => '[${p.ownerId}] ${p.name}').take(10).join(', '));
+          AppLogger.d('PetsRepo', '필터 후 펫 목록 (${filteredPets.length}) → ' + filteredPets.map((p) => '[${p.ownerId}] ${p.name}').take(10).join(', '));
           
-          print('✅ 총 ${filteredPets.length}개 펫 반환 (Supabase: ${pets.length}, 로컬: ${localPets.length})');
+          AppLogger.d('PetsRepo', '총 ${filteredPets.length}개 펫 반환 (Supabase: ${pets.length}, 로컬: ${localPets.length})');
           return filteredPets;
         } catch (e) {
-          print('❌ Supabase에서 펫 로드 실패: $e');
+          AppLogger.e('PetsRepo', 'Supabase에서 펫 로드 실패', e);
         }
       }
     } catch (e) {
-      print('❌ getAllPets 전체 오류: $e');
+      AppLogger.e('PetsRepo', 'getAllPets 전체 오류', e);
     }
 
     // Fallback to local database
-    print('🔄 로컬 데이터베이스에서 로드');
+    AppLogger.d('PetsRepo', '로컬 데이터베이스에서 로드');
     final localPets = await localDb.getAllPets();
     final userId = supabase.auth.currentUser?.id;
     final filtered = localPets.where((pet) {
@@ -147,7 +149,7 @@ class PetsRepository {
       }
       return pet.ownerId == userId || pet.ownerId == 'local-user';
     }).toList();
-    print('📱 로컬에서 ${filtered.length}개 펫 로드 (필터링 적용)');
+    AppLogger.d('PetsRepo', '로컬에서 ${filtered.length}개 펫 로드 (필터링 적용)');
     return filtered;
   }
 
@@ -155,18 +157,18 @@ class PetsRepository {
   Future<void> _migrateLocalGuestPets(String currentUserId) async {
     try {
       // 게스트/로컬유저 스코프에 저장된 펫을 직접 읽어와서 마이그레이션
-      print('🔎 스코프 점검 시작 (guest/local-user)');
+      AppLogger.d('PetsRepo', '스코프 점검 시작 (guest/local-user)');
       final guestPets = await localDb.getAllPetsForScope('guest');
       final localUserPets = await localDb.getAllPetsForScope('local-user');
-      print('📦 guest 스코프: ${guestPets.length}개 → ' + guestPets.map((p) => p.name).take(10).join(', '));
-      print('📦 local-user 스코프: ${localUserPets.length}개 → ' + localUserPets.map((p) => p.name).take(10).join(', '));
+      AppLogger.d('PetsRepo', 'guest 스코프: ${guestPets.length}개 → ' + guestPets.map((p) => p.name).take(10).join(', '));
+      AppLogger.d('PetsRepo', 'local-user 스코프: ${localUserPets.length}개 → ' + localUserPets.map((p) => p.name).take(10).join(', '));
       final needsMigration = [...guestPets, ...localUserPets];
       if (needsMigration.isEmpty) {
-        print('ℹ️ 마이그레이션 대상 없음');
+        AppLogger.d('PetsRepo', '마이그레이션 대상 없음');
         return;
       }
 
-      print('🔄 자동 마이그레이션 시작: 대상 ${needsMigration.length}개');
+      AppLogger.d('PetsRepo', '자동 마이그레이션 시작: 대상 ${needsMigration.length}개');
 
       for (final pet in needsMigration) {
         try {
@@ -176,7 +178,7 @@ class PetsRepository {
             updatedAt: DateTime.now(),
           );
 
-          print('⬆️ 업로드 시도: ${pet.name} (oldOwner=${pet.ownerId}) → newOwner=$currentUserId');
+          AppLogger.d('PetsRepo', '업로드 시도: ${pet.name} (oldOwner=${pet.ownerId}) → newOwner=$currentUserId');
           // Supabase에 업로드 (id는 DB에서 생성) → 응답으로 받은 id로 로컬 업데이트
           final insertRow = _toSupabaseRow(migratedPet, currentUserId);
           final response = await supabase
@@ -190,9 +192,9 @@ class PetsRepository {
           // 로컬 저장소에 새 ID로 저장 (이전 guest/local-user 항목 대체)
           await localDb.savePet(savedPet);
 
-          print('✅ 마이그레이션 완료: ${savedPet.name} (신규 ID: ${savedPet.id})');
+          AppLogger.d('PetsRepo', '마이그레이션 완료: ${savedPet.name} (신규 ID: ${savedPet.id})');
         } catch (e) {
-          print('❌ 펫 마이그레이션 실패: ${pet.name} - $e');
+          AppLogger.e('PetsRepo', '펫 마이그레이션 실패: ${pet.name}', e);
           // 실패 시에도 다른 항목 진행
         }
       }
@@ -200,40 +202,36 @@ class PetsRepository {
       // 마이그레이션 완료 후, 이전 스코프 데이터 정리
       await localDb.removeScopedKeyFor('pets', 'guest');
       await localDb.removeScopedKeyFor('pets', 'local-user');
-      print('🧹 스코프 정리 완료 (guest/local-user)');
+      AppLogger.d('PetsRepo', '스코프 정리 완료 (guest/local-user)');
     } catch (e) {
-      print('❌ 자동 마이그레이션 전체 실패: $e');
+      AppLogger.e('PetsRepo', '자동 마이그레이션 전체 실패', e);
     }
   }
 
   /// Get pet by ID
   Future<Pet?> getPetById(String id) async {
-    try {
-      // Try Supabase first
-      final response = await supabase
-          .from('pets')
-          .select()
-          .eq('id', id)
-          .single();
+    return withCloudFallback<Pet?>(
+      operationName: 'getPetById',
+      cloudAction: () async {
+        final response = await supabase
+            .from('pets')
+            .select()
+            .eq('id', id)
+            .single();
 
-      final pet = _fromSupabaseRow(response as Map<String, dynamic>);
-      
-      // Cache locally
-      await localDb.savePet(pet);
-      
-      return pet;
-    } catch (e) {
-      print('Failed to fetch pet from Supabase: $e');
-      // Fallback to local database
-      return await localDb.getPetById(id);
-    }
+        final pet = _fromSupabaseRow(response as Map<String, dynamic>);
+        await localDb.savePet(pet);
+        return pet;
+      },
+      localFallback: () => localDb.getPetById(id),
+    );
   }
 
   /// Create a new pet
   Future<Pet> createPet(Pet pet) async {
     try {
       final user = supabase.auth.currentUser;
-      print('🔍 현재 사용자: ${user?.email ?? 'null'} (ID: ${user?.id ?? 'null'})');
+      AppLogger.d('PetsRepo', '현재 사용자: ${user?.email ?? 'null'} (ID: ${user?.id ?? 'null'})');
       
       if (user != null) {
         await _ensureUserExists();
@@ -250,19 +248,19 @@ class PetsRepository {
         // Cache locally
         await localDb.savePet(savedPet);
         
-        print('✅ Supabase에 펫 저장 성공: ${savedPet.name} (ID: ${savedPet.id})');
+        AppLogger.d('PetsRepo', 'Supabase에 펫 저장 성공: ${savedPet.name} (ID: ${savedPet.id})');
         return savedPet;
       } else {
         // 로그인하지 않은 경우 로컬에만 저장
-        print('⚠️ 사용자가 로그인하지 않음 - 로컬 저장');
+        AppLogger.w('PetsRepo', '사용자가 로그인하지 않음 - 로컬 저장');
         await localDb.savePet(pet);
-        print('📱 로컬에만 펫 저장: ${pet.name}');
+        AppLogger.d('PetsRepo', '로컬에만 펫 저장: ${pet.name}');
         return pet;
       }
     } catch (e) {
       // Supabase 오류 시 로컬에만 저장
-      print('❌ Supabase 저장 실패 상세: $e');
-      print('🔄 로컬 저장으로 대체');
+      AppLogger.e('PetsRepo', 'Supabase 저장 실패 상세', e);
+      AppLogger.d('PetsRepo', '로컬 저장으로 대체');
       await localDb.savePet(pet);
       return pet;
     }
@@ -270,47 +268,34 @@ class PetsRepository {
 
   /// Update an existing pet
   Future<Pet> updatePet(Pet pet) async {
-    try {
-      // Update in Supabase
-      final userId = supabase.auth.currentUser?.id;
-      final updateRow = userId != null ? _toSupabaseRow(pet, userId) : _toSupabaseRow(pet, pet.ownerId);
-      final response = await supabase
-          .from('pets')
-          .update(updateRow)
-          .eq('id', pet.id)
-          .select()
-          .single();
+    return saveWithCloudFallback<Pet>(
+      operationName: 'updatePet',
+      cloudAction: () async {
+        final userId = supabase.auth.currentUser?.id;
+        final updateRow = userId != null ? _toSupabaseRow(pet, userId) : _toSupabaseRow(pet, pet.ownerId);
+        final response = await supabase
+            .from('pets')
+            .update(updateRow)
+            .eq('id', pet.id)
+            .select()
+            .single();
 
-      final updatedPet = _fromSupabaseRow(response as Map<String, dynamic>);
-      
-      // Update locally
-      await localDb.savePet(updatedPet);
-      
-      return updatedPet;
-    } catch (e) {
-      print('Failed to update pet in Supabase: $e');
-      // Update locally anyway
-      await localDb.savePet(pet);
-      return pet;
-    }
+        final updatedPet = _fromSupabaseRow(response as Map<String, dynamic>);
+        await localDb.savePet(updatedPet);
+        return updatedPet;
+      },
+      localSave: () => localDb.savePet(pet),
+      fallbackValue: pet,
+    );
   }
 
   /// Delete a pet
   Future<void> deletePet(String id) async {
-    try {
-      // Delete from Supabase
-      await supabase
-          .from('pets')
-          .delete()
-          .eq('id', id);
-
-      // Delete locally
-      await localDb.deletePet(id);
-    } catch (e) {
-      print('Failed to delete pet from Supabase: $e');
-      // Delete locally anyway
-      await localDb.deletePet(id);
-    }
+    return deleteWithCloudFallback(
+      operationName: 'deletePet',
+      cloudAction: () => supabase.from('pets').delete().eq('id', id),
+      localDelete: () => localDb.deletePet(id),
+    );
   }
 
   /// Sync local changes to Supabase
@@ -321,9 +306,9 @@ class PetsRepository {
 
       // TODO: Implement conflict resolution and sync logic
       // This would handle uploading local changes that couldn't be synced
-      print('Syncing pets to cloud...');
+      AppLogger.d('PetsRepo', 'Syncing pets to cloud...');
     } catch (e) {
-      print('Failed to sync pets to cloud: $e');
+      AppLogger.e('PetsRepo', 'Failed to sync pets to cloud', e);
     }
   }
 }

@@ -29,17 +29,4 @@ class ColorUtils {
         return Colors.grey;
     }
   }
-  
-  /// Color 객체를 Color_X 문자열로 변환 (필요시 사용)
-  static String? getStringFromBgColor(Color color) {
-    if (color == const Color(0xFFFF6B6B)) return 'Color_1';
-    if (color == const Color(0xFF4ECDC4)) return 'Color_2';
-    if (color == const Color(0xFF45B7D1)) return 'Color_3';
-    if (color == const Color(0xFF96CEB4)) return 'Color_4';
-    if (color == const Color(0xFFFECA57)) return 'Color_5';
-    if (color == const Color(0xFFFF9FF3)) return 'Color_6';
-    if (color == const Color(0xFF54A0FF)) return 'Color_7';
-    if (color == const Color(0xFF5F27CD)) return 'Color_8';
-    return null;
-  }
 }

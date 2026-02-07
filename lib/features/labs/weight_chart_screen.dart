@@ -4,7 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:petcare/ui/theme/app_colors.dart';
+import 'package:petcare/utils/app_logger.dart';
 
 class WeightChartScreen extends ConsumerStatefulWidget {
   const WeightChartScreen({
@@ -79,7 +81,7 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
         _applyAggregation();
       }
     } catch (e) {
-      print('체중 데이터 로드 오류: $e');
+      AppLogger.e('WeightChart', '체중 데이터 로드 오류', e);
       setState(() {
         _isLoading = false;
       });
@@ -162,7 +164,7 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.petName} - 체중 변화'),
+        title: Text('chart.weight_chart_title'.tr(args: [widget.petName])),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -181,7 +183,7 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
                       Row(
                         children: [
                           ChoiceChip(
-                            label: const Text('일간'),
+                            label: Text('views.daily'.tr()),
                             selected: _viewMode == 'day',
                             onSelected: (selected) {
                               if (selected) {
@@ -194,7 +196,7 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
                           ),
                           const SizedBox(width: 8),
                           ChoiceChip(
-                            label: const Text('주간'),
+                            label: Text('views.weekly'.tr()),
                             selected: _viewMode == 'week',
                             onSelected: (selected) {
                               if (selected) {
@@ -207,7 +209,7 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
                           ),
                           const SizedBox(width: 8),
                           ChoiceChip(
-                            label: const Text('월간'),
+                            label: Text('views.monthly'.tr()),
                             selected: _viewMode == 'month',
                             onSelected: (selected) {
                               if (selected) {
@@ -239,7 +241,7 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
                                     const SizedBox(width: 8),
                                     Flexible(
                                       child: Text(
-                                        '시작: ${DateFormat('yyyy-MM-dd').format(_startDate)}',
+                                        '${'chart.start_date'.tr()}: ${DateFormat('yyyy-MM-dd').format(_startDate)}',
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(fontSize: 14),
                                       ),
@@ -265,7 +267,7 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
                                     const SizedBox(width: 8),
                                     Flexible(
                                       child: Text(
-                                        '종료: ${DateFormat('yyyy-MM-dd').format(_endDate)}',
+                                        '${'chart.end_date'.tr()}: ${DateFormat('yyyy-MM-dd').format(_endDate)}',
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(fontSize: 14),
                                       ),
@@ -380,7 +382,7 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                '체중 데이터가 없습니다',
+                'chart.no_weight_data'.tr(),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: colorScheme.onSurface.withOpacity(0.7),
                       fontWeight: FontWeight.w600,
@@ -388,7 +390,7 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                '체중을 기록하면 귀여운 그래프가 표시됩니다.',
+                'chart.weight_record_hint'.tr(),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurface.withOpacity(0.6),
                     ),
@@ -431,7 +433,7 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '체중 변화',
+                'chart.weight_change'.tr(),
                 style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: primaryColor,
@@ -453,14 +455,14 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
 
   String _buildLatestSummaryText() {
     if (_displayWeightData.isEmpty) {
-      return '최근 기록 없음';
+      return 'chart.no_recent_record'.tr();
     }
 
     final latest = _displayWeightData.last;
     final dateKey = latest['date'] as String;
     final weight = latest['weight'] as double;
     final dateLabel = _formatDateForMode(dateKey, includeYear: false, includeSuffix: true);
-    return '최근 $dateLabel · ${weight.toStringAsFixed(1)}kg';
+    return 'chart.recent_summary'.tr(args: [dateLabel, weight.toStringAsFixed(1)]);
   }
 
   LineChartData _createChartData({
@@ -711,15 +713,17 @@ class _WeightChartScreenState extends ConsumerState<WeightChartScreen> {
     }
 
     if (_viewMode == 'month') {
-      final pattern = includeYear ? 'yyyy.MM' : 'MM월';
-      return DateFormat(pattern).format(date);
+      if (includeYear) {
+        return DateFormat('yyyy.MM').format(date);
+      }
+      return '${date.month}${'chart.month_suffix'.tr()}';
     }
 
     final pattern = includeYear ? 'yyyy.MM.dd' : 'MM/dd';
     final formatted = DateFormat(pattern).format(date);
 
     if (_viewMode == 'week' && includeSuffix) {
-      return '$formatted 주';
+      return '$formatted ${'chart.week_suffix'.tr()}';
     }
 
     return formatted;

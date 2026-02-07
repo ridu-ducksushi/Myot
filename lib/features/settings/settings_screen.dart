@@ -8,9 +8,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:petcare/core/providers/pets_provider.dart';
+import 'package:petcare/core/providers/theme_provider.dart';
 import 'package:petcare/data/local/database.dart';
 import 'package:petcare/data/services/image_service.dart';
+import 'package:petcare/data/services/backup_service.dart';
 import 'package:petcare/features/pets/pets_screen.dart';
 import 'package:petcare/ui/widgets/common_widgets.dart';
 import 'package:petcare/ui/theme/app_colors.dart';
@@ -18,28 +21,42 @@ import 'package:petcare/data/models/pet.dart';
 import 'package:petcare/ui/widgets/app_record_calendar.dart';
 import 'package:petcare/ui/widgets/add_pet_sheet.dart';
 import 'package:petcare/utils/app_constants.dart';
+import 'package:petcare/utils/app_logger.dart';
 
-class SettingsPlaceholder extends ConsumerStatefulWidget {
-  const SettingsPlaceholder({super.key});
+class SettingsScreen extends ConsumerStatefulWidget {
+  const SettingsScreen({super.key});
 
   @override
-  ConsumerState<SettingsPlaceholder> createState() =>
-      _SettingsPlaceholderState();
+  ConsumerState<SettingsScreen> createState() =>
+      _SettingsScreenState();
 }
 
-class _SettingsPlaceholderState extends ConsumerState<SettingsPlaceholder> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   DateTime _dateOnly(DateTime date) =>
       DateTime(date.year, date.month, date.day);
+
+  String _themeMode = 'system';
 
   @override
   void initState() {
     super.initState();
+    _loadThemeMode();
     // Supabase 인증 상태 변화를 감지
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       if (mounted) {
         setState(() {});
       }
     });
+  }
+
+  Future<void> _loadThemeMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final mode = prefs.getString('theme_mode') ?? 'system';
+    if (mounted) {
+      setState(() {
+        _themeMode = mode;
+      });
+    }
   }
 
   Future<void> _signOut(BuildContext context) async {
@@ -183,15 +200,15 @@ class _SettingsPlaceholderState extends ConsumerState<SettingsPlaceholder> {
         return;
       }
 
-      print('🔄 계정 삭제 시작: ${user.id}');
+      AppLogger.d('Settings', '계정 삭제 시작: ${user.id}');
 
       // Ensure fresh session (older emulators may have skew causing token invalidation)
       try {
-        print('🔄 세션 새로고침 시도...');
+        AppLogger.d('Settings', '세션 새로고침 시도...');
         await Supabase.instance.client.auth.refreshSession();
-        print('✅ 세션 새로고침 성공');
+        AppLogger.d('Settings', '세션 새로고침 성공');
       } catch (e) {
-        print('⚠️ 세션 새로고침 실패 (무시하고 진행): $e');
+        AppLogger.w('Settings', '세션 새로고침 실패 (무시하고 진행): $e');
       }
 
       // Invoke Edge Function with JWT to delete server-side data and auth user
@@ -209,16 +226,16 @@ class _SettingsPlaceholderState extends ConsumerState<SettingsPlaceholder> {
         return;
       }
 
-      print('🔑 JWT 토큰 획득 완료: ${token.substring(0, 20)}...');
+      AppLogger.d('Settings', 'JWT 토큰 획득 완료: ${token.substring(0, 20)}...');
 
       Future<dynamic> _call() async {
-        print('📞 Edge Function 호출 중...');
+        AppLogger.d('Settings', 'Edge Function 호출 중...');
         final result = await Supabase.instance.client.functions.invoke(
           'delete-account',
           body: const {},
           headers: {'Authorization': 'Bearer $token'},
         );
-        print('📞 Edge Function 응답: ${result.data}');
+        AppLogger.d('Settings', 'Edge Function 응답: ${result.data}');
         return result;
       }
 
@@ -227,20 +244,22 @@ class _SettingsPlaceholderState extends ConsumerState<SettingsPlaceholder> {
         response = await _call().timeout(
           AppConstants.edgeFunctionTimeout,
           onTimeout: () {
-            print(
-              '⏱️ Edge Function 타임아웃 (${AppConstants.edgeFunctionTimeout.inSeconds}초)',
+            AppLogger.w(
+              'Settings',
+              'Edge Function 타임아웃 (${AppConstants.edgeFunctionTimeout.inSeconds}초)',
             );
             throw TimeoutException('settings.delete_account_timeout'.tr());
           },
         );
       } on TimeoutException catch (e) {
-        print('⏱️ 첫 시도 타임아웃, 재시도 중...');
+        AppLogger.w('Settings', '첫 시도 타임아웃, 재시도 중...');
         // One-time retry for slow/older emulators or flaky network
         response = await _call().timeout(
           AppConstants.edgeFunctionTimeout,
           onTimeout: () {
-            print(
-              '⏱️ Edge Function 재시도 타임아웃 (${AppConstants.edgeFunctionTimeout.inSeconds}초)',
+            AppLogger.w(
+              'Settings',
+              'Edge Function 재시도 타임아웃 (${AppConstants.edgeFunctionTimeout.inSeconds}초)',
             );
             throw TimeoutException(
               '${'settings.delete_account_timeout'.tr()} (재시도 실패)',
@@ -249,8 +268,8 @@ class _SettingsPlaceholderState extends ConsumerState<SettingsPlaceholder> {
         );
       }
 
-      print('📊 Edge Function 응답 타입: ${response.runtimeType}');
-      print('📊 Edge Function 응답 데이터: ${response.data}');
+      AppLogger.d('Settings', 'Edge Function 응답 타입: ${response.runtimeType}');
+      AppLogger.d('Settings', 'Edge Function 응답 데이터: ${response.data}');
 
       // Check response
       final data = response.data;
@@ -260,35 +279,34 @@ class _SettingsPlaceholderState extends ConsumerState<SettingsPlaceholder> {
         final errorDetail = data is Map
             ? (data['error']?.toString() ?? data.toString())
             : data?.toString() ?? '알 수 없는 오류';
-        print('❌ Edge Function 실패: $errorDetail');
+        AppLogger.e('Settings', 'Edge Function 실패: $errorDetail');
         throw Exception(
           '${'settings.delete_account_server_failed'.tr()}: $errorDetail',
         );
       }
 
-      print('✅ 서버 데이터 삭제 완료');
+      AppLogger.d('Settings', '서버 데이터 삭제 완료');
 
       // Clear local scoped caches
-      print('🗑️ 로컬 캐시 삭제 중...');
+      AppLogger.d('Settings', '로컬 캐시 삭제 중...');
       await LocalDatabase.instance.clearAll();
-      print('✅ 로컬 캐시 삭제 완료');
+      AppLogger.d('Settings', '로컬 캐시 삭제 완료');
 
       // Delete all locally saved images
-      print('🗑️ 로컬 이미지 삭제 중...');
+      AppLogger.d('Settings', '로컬 이미지 삭제 중...');
       await ImageService.deleteAllSavedImages();
-      print('✅ 로컬 이미지 삭제 완료');
+      AppLogger.d('Settings', '로컬 이미지 삭제 완료');
 
       // Sign out locally (session becomes invalid anyway after auth deletion)
-      print('🚪 로그아웃 중...');
+      AppLogger.d('Settings', '로그아웃 중...');
       await Supabase.instance.client.auth.signOut();
-      print('✅ 로그아웃 완료');
-      print('✅ 계정 삭제 완료');
+      AppLogger.d('Settings', '로그아웃 완료');
+      AppLogger.d('Settings', '계정 삭제 완료');
 
       // Navigation will happen automatically via auth redirect (GoRouter)
       // No need to manually pop or navigate
     } catch (e, stackTrace) {
-      print('❌ 계정 삭제 오류: $e');
-      print('❌ 스택 트레이스: $stackTrace');
+      AppLogger.e('Settings', '계정 삭제 오류', e, stackTrace);
 
       if (context.mounted) {
         Navigator.of(context).pop(); // Close loading dialog
@@ -469,6 +487,54 @@ class _SettingsPlaceholderState extends ConsumerState<SettingsPlaceholder> {
 
           const SizedBox(height: 2),
 
+          // 앱 설정 섹션 (언어/테마)
+          SectionHeader(title: 'settings.app_settings'.tr()),
+          AppCard(
+            child: ListTile(
+              leading: const Icon(Icons.language, color: AppColors.primary),
+              title: Text('settings.language'.tr()),
+              subtitle: Text(_getCurrentLanguageName(context)),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () => _showLanguageDialog(context),
+            ),
+          ),
+          const SizedBox(height: 12),
+          AppCard(
+            child: ListTile(
+              leading: const Icon(Icons.palette, color: AppColors.primary),
+              title: Text('settings.theme'.tr()),
+              subtitle: Text(_getCurrentThemeModeName(context)),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () => _showThemeDialog(context),
+            ),
+          ),
+
+          const SizedBox(height: 2),
+
+          // 데이터 관리 섹션
+          SectionHeader(title: 'settings.backup_restore'.tr()),
+          AppCard(
+            child: ListTile(
+              leading: const Icon(Icons.upload_file, color: AppColors.primary),
+              title: Text('settings.export_data'.tr()),
+              subtitle: Text('settings.export_data_description'.tr()),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () => _exportData(context),
+            ),
+          ),
+          const SizedBox(height: 12),
+          AppCard(
+            child: ListTile(
+              leading: const Icon(Icons.download, color: AppColors.primary),
+              title: Text('settings.import_data'.tr()),
+              subtitle: Text('settings.import_data_description'.tr()),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () => _importData(context),
+            ),
+          ),
+
+          const SizedBox(height: 2),
+
           // 계정 설정 섹션
           SectionHeader(title: 'settings.account_settings'.tr()),
           AppCard(
@@ -488,9 +554,218 @@ class _SettingsPlaceholderState extends ConsumerState<SettingsPlaceholder> {
               onTap: () => _confirmDeleteRequest(context),
             ),
           ),
+
         ],
       ),
     );
+  }
+
+  String _getCurrentLanguageName(BuildContext context) {
+    final locale = context.locale;
+    switch (locale.languageCode) {
+      case 'ko':
+        return '한국어';
+      case 'en':
+        return 'English';
+      case 'ja':
+        return '日本語';
+      default:
+        return locale.languageCode;
+    }
+  }
+
+  Future<void> _showLanguageDialog(BuildContext context) async {
+    final languages = [
+      {'code': 'ko', 'name': '한국어'},
+      {'code': 'en', 'name': 'English'},
+      {'code': 'ja', 'name': '日本語'},
+    ];
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text('settings.language'.tr()),
+        children: languages.map((lang) {
+          final isSelected = context.locale.languageCode == lang['code'];
+          return SimpleDialogOption(
+            onPressed: () {
+              context.setLocale(Locale(lang['code']!));
+              Navigator.of(dialogContext).pop();
+            },
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    lang['name']!,
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  Icon(Icons.check, color: Theme.of(context).colorScheme.primary),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  String _getCurrentThemeModeName(BuildContext context) {
+    switch (_themeMode) {
+      case 'light':
+        return 'settings.theme_light'.tr();
+      case 'dark':
+        return 'settings.theme_dark'.tr();
+      case 'system':
+      default:
+        return 'settings.theme_system'.tr();
+    }
+  }
+
+  Future<void> _showThemeDialog(BuildContext context) async {
+    final themes = [
+      {'key': 'system', 'label': 'settings.theme_system'.tr()},
+      {'key': 'light', 'label': 'settings.theme_light'.tr()},
+      {'key': 'dark', 'label': 'settings.theme_dark'.tr()},
+    ];
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text('settings.theme'.tr()),
+        children: themes.map((theme) {
+          final isSelected = _themeMode == theme['key'];
+          return SimpleDialogOption(
+            onPressed: () {
+              ref.read(themeModeProvider.notifier).setThemeMode(theme['key']!);
+              if (dialogContext.mounted) {
+                Navigator.of(dialogContext).pop();
+              }
+              if (context.mounted) {
+                setState(() {
+                  _themeMode = theme['key']!;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('settings.theme_changed'.tr())),
+                );
+              }
+            },
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    theme['label']!,
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  Icon(Icons.check, color: Theme.of(context).colorScheme.primary),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Future<void> _exportData(BuildContext context) async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('settings.exporting'.tr())),
+      );
+      await BackupService.shareBackup();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('settings.export_success'.tr())),
+        );
+      }
+    } catch (e) {
+      AppLogger.e('Settings', 'Export failed', e);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('settings.export_error'.tr())),
+        );
+      }
+    }
+  }
+
+  Future<void> _importData(BuildContext context) async {
+    // Show confirmation dialog first
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('settings.import_confirm_title'.tr()),
+        content: Text('settings.import_confirm_message'.tr()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text('common.cancel'.tr()),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text('settings.import_confirm'.tr()),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final filePath = result.files.single.path;
+      if (filePath == null) return;
+
+      final importResult = await BackupService.importFromFile(filePath);
+
+      if (context.mounted) {
+        final message = 'settings.import_success'.tr(args: [
+          importResult.petsImported.toString(),
+          importResult.recordsImported.toString(),
+          importResult.remindersImported.toString(),
+        ]);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+
+        if (importResult.totalSkipped > 0 && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('settings.import_skipped'.tr(
+                args: [importResult.totalSkipped.toString()],
+              )),
+            ),
+          );
+        }
+
+        // Refresh pets list
+        ref.invalidate(petsProvider);
+      }
+    } on FormatException {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('settings.import_invalid_format'.tr())),
+        );
+      }
+    } catch (e) {
+      AppLogger.e('Settings', 'Import failed', e);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('settings.import_error'.tr())),
+        );
+      }
+    }
   }
 
   void _showEditProfileDialog(BuildContext context) {
@@ -508,9 +783,9 @@ class _SettingsPlaceholderState extends ConsumerState<SettingsPlaceholder> {
     // 게스트 사용자 확인: email이 null이거나 비어있으면 게스트
     final isGuest = user?.email == null || (user!.email?.isEmpty ?? true);
     
-    final email = isGuest ? '게스트 계정' : (user?.email ?? 'Unknown');
+    final email = isGuest ? 'settings.guest_account'.tr() : (user?.email ?? 'Unknown');
     final displayName = isGuest
-        ? '게스트'
+        ? 'settings.guest'.tr()
         : (user?.userMetadata?['display_name'] as String? ??
             user?.userMetadata?['full_name'] as String? ??
             email.split('@').first);
@@ -875,7 +1150,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     final isGuest = user?.email == null || user!.email!.isEmpty;
     
     final displayName = isGuest
-        ? '게스트'
+        ? 'settings.guest'.tr()
         : (user?.userMetadata?['display_name'] as String? ??
             user?.userMetadata?['full_name'] as String? ??
             '');
@@ -904,7 +1179,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
 
       final displayName = _displayNameController.text.trim();
 
-      print('🔧 프로필 업데이트 시도: displayName=$displayName');
+      AppLogger.d('Settings', '프로필 업데이트 시도: displayName=$displayName');
 
       // 사용자 메타데이터 업데이트 (닉네임만)
       final metadata = <String, dynamic>{'display_name': displayName};
@@ -913,7 +1188,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
         UserAttributes(data: metadata),
       );
 
-      print('✅ 프로필 업데이트 응답: ${response.user?.userMetadata}');
+      AppLogger.d('Settings', '프로필 업데이트 응답: ${response.user?.userMetadata}');
 
       if (mounted) {
         Navigator.of(context).pop();
@@ -922,7 +1197,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
         );
       }
     } catch (e) {
-      print('❌ 프로필 업데이트 오류: $e');
+      AppLogger.e('Settings', '프로필 업데이트 오류', e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

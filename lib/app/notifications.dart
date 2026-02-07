@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:timezone/timezone.dart' as tz;
+import 'package:petcare/utils/app_logger.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -27,13 +28,9 @@ class NotificationService {
       // Setup FCM handlers
       await _setupFCMHandlers();
       
-      if (kDebugMode) {
-        print('NotificationService initialized successfully');
-      }
+      AppLogger.d('Notifications', 'NotificationService initialized successfully');
     } catch (e) {
-      if (kDebugMode) {
-        print('Failed to initialize NotificationService: $e');
-      }
+      AppLogger.e('Notifications', 'Failed to initialize NotificationService', e);
     }
   }
 
@@ -47,9 +44,7 @@ class NotificationService {
       sound: true,
     );
 
-    if (kDebugMode) {
-      print('Permission granted: ${settings.authorizationStatus}');
-    }
+    AppLogger.d('Notifications', 'Permission granted: ${settings.authorizationStatus}');
   }
 
   Future<void> _initializeLocalNotifications() async {
@@ -89,9 +84,7 @@ class NotificationService {
   }
 
   void _handleForegroundMessage(RemoteMessage message) {
-    if (kDebugMode) {
-      print('Foreground message: ${message.notification?.title}');
-    }
+    AppLogger.d('Notifications', 'Foreground message: ${message.notification?.title}');
     
     // Show local notification when app is in foreground
     _showLocalNotification(
@@ -102,18 +95,14 @@ class NotificationService {
   }
 
   void _handleNotificationOpened(RemoteMessage message) {
-    if (kDebugMode) {
-      print('Notification opened: ${message.data}');
-    }
+    AppLogger.d('Notifications', 'Notification opened: ${message.data}');
     
     // Handle navigation based on notification data
     // TODO: Implement navigation logic
   }
 
   void _onNotificationTapped(NotificationResponse response) {
-    if (kDebugMode) {
-      print('Local notification tapped: ${response.payload}');
-    }
+    AppLogger.d('Notifications', 'Local notification tapped: ${response.payload}');
     
     // Handle local notification tap
     // TODO: Implement navigation logic

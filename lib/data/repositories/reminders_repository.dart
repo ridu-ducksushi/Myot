@@ -2,16 +2,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:petcare/data/models/reminder.dart';
 import 'package:petcare/data/local/database.dart';
+import 'package:petcare/data/repositories/base_repository.dart';
+import 'package:petcare/utils/app_logger.dart';
 
 /// Repository for reminder data management
-class RemindersRepository {
+class RemindersRepository extends BaseRepository {
   RemindersRepository({
-    required this.supabase,
-    required this.localDb,
+    required super.supabase,
+    required super.localDb,
   });
 
-  final SupabaseClient supabase;
-  final LocalDatabase localDb;
+  @override
+  String get tag => 'RemindersRepo';
 
   /// Get all reminders for a pet
   Future<List<Reminder>> getRemindersForPet(String petId) async {
@@ -34,7 +36,7 @@ class RemindersRepository {
 
       return reminders;
     } catch (e) {
-      print('Failed to fetch reminders from Supabase: $e');
+      AppLogger.e('RemindersRepo', 'Failed to fetch reminders from Supabase', e);
       // Fallback to local database
       return await localDb.getRemindersForPet(petId);
     }
@@ -68,7 +70,7 @@ class RemindersRepository {
         return reminders;
       }
     } catch (e) {
-      print('Failed to fetch reminders from Supabase: $e');
+      AppLogger.e('RemindersRepo', 'Failed to fetch reminders from Supabase', e);
     }
 
     // Fallback to local database
@@ -100,7 +102,7 @@ class RemindersRepository {
             .toList();
       }
     } catch (e) {
-      print('Failed to fetch upcoming reminders from Supabase: $e');
+      AppLogger.e('RemindersRepo', 'Failed to fetch upcoming reminders from Supabase', e);
     }
 
     // Fallback to filtering local reminders
@@ -135,7 +137,7 @@ class RemindersRepository {
             .toList();
       }
     } catch (e) {
-      print('Failed to fetch overdue reminders from Supabase: $e');
+      AppLogger.e('RemindersRepo', 'Failed to fetch overdue reminders from Supabase', e);
     }
 
     // Fallback to filtering local reminders
@@ -147,99 +149,78 @@ class RemindersRepository {
 
   /// Create a new reminder
   Future<Reminder> createReminder(Reminder reminder) async {
-    try {
-      // Save to Supabase
-      final response = await supabase
-          .from('reminders')
-          .insert(reminder.toJson())
-          .select()
-          .single();
+    return saveWithCloudFallback<Reminder>(
+      operationName: 'createReminder',
+      cloudAction: () async {
+        final response = await supabase
+            .from('reminders')
+            .insert(reminder.toJson())
+            .select()
+            .single();
 
-      final savedReminder = Reminder.fromJson(response as Map<String, dynamic>);
-      
-      // Cache locally
-      await localDb.saveReminder(savedReminder);
-      
-      return savedReminder;
-    } catch (e) {
-      print('Failed to create reminder in Supabase: $e');
-      // Save locally anyway
-      await localDb.saveReminder(reminder);
-      return reminder;
-    }
+        final savedReminder = Reminder.fromJson(response as Map<String, dynamic>);
+        await localDb.saveReminder(savedReminder);
+        return savedReminder;
+      },
+      localSave: () => localDb.saveReminder(reminder),
+      fallbackValue: reminder,
+    );
   }
 
   /// Update an existing reminder
   Future<Reminder> updateReminder(Reminder reminder) async {
-    try {
-      // Update in Supabase
-      final response = await supabase
-          .from('reminders')
-          .update(reminder.toJson())
-          .eq('id', reminder.id)
-          .select()
-          .single();
+    return saveWithCloudFallback<Reminder>(
+      operationName: 'updateReminder',
+      cloudAction: () async {
+        final response = await supabase
+            .from('reminders')
+            .update(reminder.toJson())
+            .eq('id', reminder.id)
+            .select()
+            .single();
 
-      final updatedReminder = Reminder.fromJson(response as Map<String, dynamic>);
-      
-      // Update locally
-      await localDb.saveReminder(updatedReminder);
-      
-      return updatedReminder;
-    } catch (e) {
-      print('Failed to update reminder in Supabase: $e');
-      // Update locally anyway
-      await localDb.saveReminder(reminder);
-      return reminder;
-    }
+        final updatedReminder = Reminder.fromJson(response as Map<String, dynamic>);
+        await localDb.saveReminder(updatedReminder);
+        return updatedReminder;
+      },
+      localSave: () => localDb.saveReminder(reminder),
+      fallbackValue: reminder,
+    );
   }
 
   /// Mark reminder as done
   Future<Reminder> markReminderDone(String id) async {
-    try {
-      // Update in Supabase
-      final response = await supabase
-          .from('reminders')
-          .update({'done': true})
-          .eq('id', id)
-          .select()
-          .single();
+    return withCloudFallback<Reminder>(
+      operationName: 'markReminderDone',
+      cloudAction: () async {
+        final response = await supabase
+            .from('reminders')
+            .update({'done': true})
+            .eq('id', id)
+            .select()
+            .single();
 
-      final updatedReminder = Reminder.fromJson(response as Map<String, dynamic>);
-      
-      // Update locally
-      await localDb.saveReminder(updatedReminder);
-      
-      return updatedReminder;
-    } catch (e) {
-      print('Failed to mark reminder as done in Supabase: $e');
-      
-      // Get current reminder and mark as done locally
-      final currentReminder = await localDb.getAllReminders();
-      final reminder = currentReminder.firstWhere((r) => r.id == id);
-      final updatedReminder = reminder.copyWith(done: true);
-      await localDb.saveReminder(updatedReminder);
-      
-      return updatedReminder;
-    }
+        final updatedReminder = Reminder.fromJson(response as Map<String, dynamic>);
+        await localDb.saveReminder(updatedReminder);
+        return updatedReminder;
+      },
+      localFallback: () async {
+        final currentReminder = await localDb.getAllReminders();
+        final reminder = currentReminder.firstWhere((r) => r.id == id);
+        final updatedReminder = reminder.copyWith(done: true);
+        await localDb.saveReminder(updatedReminder);
+        return updatedReminder;
+      },
+    );
   }
 
   /// Delete a reminder
   Future<void> deleteReminder(String id) async {
-    try {
-      // Delete from Supabase
-      await supabase
-          .from('reminders')
-          .delete()
-          .eq('id', id);
-
-      // Delete locally
-      await localDb.deleteReminder(id);
-    } catch (e) {
-      print('Failed to delete reminder from Supabase: $e');
-      // Delete locally anyway
-      await localDb.deleteReminder(id);
-    }
+    return deleteWithCloudFallback(
+      operationName: 'deleteReminder',
+      cloudAction: () => supabase.from('reminders').delete().eq('id', id),
+      localDelete: () => localDb.deleteReminder(id),
+    );
   }
 
   /// Sync local changes to Supabase
@@ -249,9 +230,9 @@ class RemindersRepository {
       if (user == null) return;
 
       // TODO: Implement conflict resolution and sync logic
-      print('Syncing reminders to cloud...');
+      AppLogger.d('RemindersRepo', 'Syncing reminders to cloud...');
     } catch (e) {
-      print('Failed to sync reminders to cloud: $e');
+      AppLogger.e('RemindersRepo', 'Failed to sync reminders to cloud', e);
     }
   }
 }

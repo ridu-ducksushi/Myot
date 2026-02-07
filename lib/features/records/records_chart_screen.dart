@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:petcare/data/models/record.dart';
 import 'package:petcare/core/providers/records_provider.dart';
 import 'package:petcare/ui/theme/app_colors.dart';
+import 'package:petcare/utils/app_logger.dart';
 
 class RecordsChartScreen extends ConsumerStatefulWidget {
   final String petId;
@@ -51,7 +52,7 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
         });
       }
     } catch (e) {
-      print('❌ Load record types error: $e');
+      AppLogger.e('RecordsChart', 'Load record types error', e);
     }
   }
 
@@ -96,7 +97,7 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
         });
       }
     } catch (e) {
-      print('❌ Load chart data error: $e');
+      AppLogger.e('RecordsChart', 'Load chart data error', e);
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -176,7 +177,7 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.petName} - 레코드 차트 보기'),
+        title: Text('chart.record_chart_title'.tr(args: [widget.petName])),
 
 
         backgroundColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.95),
@@ -204,12 +205,12 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
                 // 레코드 타입 선택
                 Row(
                   children: [
-                    const Text('레코드 타입: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text('${'chart.record_type_label'.tr()}: ', style: const TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: DropdownButton<String>(
                         value: _selectedRecordType,
-                        hint: const Text('레코드 타입을 선택하세요'),
+                        hint: Text('chart.select_record_type'.tr()),
                         isExpanded: true,
                         items: _getRecordTypeOptions().map((type) {
                           return DropdownMenuItem(
@@ -235,7 +236,7 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
                     spacing: 8,
                     children: [
                       ChoiceChip(
-                        label: const Text('일간'),
+                        label: Text('views.daily'.tr()),
                         selected: _viewMode == 'day',
                         onSelected: (v) {
                           if (!v) return;
@@ -246,7 +247,7 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
                         },
                       ),
                       ChoiceChip(
-                        label: const Text('주간'),
+                        label: Text('views.weekly'.tr()),
                         selected: _viewMode == 'week',
                         onSelected: (v) {
                           if (!v) return;
@@ -257,7 +258,7 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
                         },
                       ),
                       ChoiceChip(
-                        label: const Text('월간'),
+                        label: Text('views.monthly'.tr()),
                         selected: _viewMode == 'month',
                         onSelected: (v) {
                           if (!v) return;
@@ -287,7 +288,7 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
                             children: [
                               const Icon(Icons.calendar_today, size: 16),
                               const SizedBox(width: 8),
-                              Text('시작: ${DateFormat('yyyy-MM-dd').format(_startDate)}'),
+                              Text('${'chart.start_date'.tr()}: ${DateFormat('yyyy-MM-dd').format(_startDate)}'),
                             ],
                           ),
                         ),
@@ -307,7 +308,7 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
                             children: [
                               const Icon(Icons.calendar_today, size: 16),
                               const SizedBox(width: 8),
-                              Text('종료: ${DateFormat('yyyy-MM-dd').format(_endDate)}'),
+                              Text('${'chart.end_date'.tr()}: ${DateFormat('yyyy-MM-dd').format(_endDate)}'),
                             ],
                           ),
                         ),
@@ -338,13 +339,13 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
   String _getRecordTypeDisplayName(String type) {
     switch (type) {
       case 'food':
-        return '식사';
+        return 'records.category.food'.tr();
       case 'health':
-        return '건강';
+        return 'records.category.health'.tr();
       case 'poop':
-        return '배변';
+        return 'records.category.poop'.tr();
       case 'activity':
-        return '활동';
+        return 'records.category.activity'.tr();
       default:
         return type;
     }
@@ -394,15 +395,15 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
 
   Widget _buildChart() {
     if (_chartData.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.analytics_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.analytics_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
-              '선택한 기간에 데이터가 없습니다',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              'chart.no_data_for_period'.tr(),
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
             ),
           ],
         ),
@@ -483,7 +484,7 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${_getRecordTypeDisplayName(_selectedRecordType!)} 레코드',
+                        _getRecordTypeDisplayName(_selectedRecordType!),
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w700,
                               color: primaryColor,
@@ -491,7 +492,7 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '총 $totalCount개 기록',
+                        'chart.total_count'.tr(args: [totalCount.toString()]),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                             ),
@@ -667,7 +668,7 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
                 final data = _chartData[dataIndex];
                 final label = data['label'] as String? ?? data['date'] as String;
                 return LineTooltipItem(
-                  '${_formatTooltipLabel(label)}\n${data['count']}개',
+                  '${_formatTooltipLabel(label)}\n${'chart.count_unit'.tr(args: [data['count'].toString()])}',
                   textStyle,
                 );
               }
@@ -695,7 +696,7 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
       return label;
     }
     final monthDate = DateTime.parse('$label-01');
-    return DateFormat('MM월').format(monthDate);
+    return '${monthDate.month}${'chart.month_suffix'.tr()}';
   }
 
   String _formatTooltipLabel(String label) {
@@ -705,7 +706,8 @@ class _RecordsChartScreenState extends ConsumerState<RecordsChartScreen> {
     if (_viewMode == 'week') {
       return label;
     }
-    return DateFormat('yyyy년 MM월').format(DateTime.parse('$label-01'));
+    final monthDate = DateTime.parse('$label-01');
+    return '${monthDate.year}-${monthDate.month.toString().padLeft(2, '0')}';
   }
 
   IconData _getRecordCategoryIcon(String category) {

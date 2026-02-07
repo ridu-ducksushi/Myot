@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:petcare/core/providers/pets_provider.dart';
+import 'package:petcare/utils/app_logger.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key, required this.child});
@@ -44,7 +45,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final saved = prefs.getStringList('route_history');
       if (saved != null && saved.isNotEmpty) {
         _routeHistory.addAll(saved);
-        print('📖 Loaded history: $_routeHistory');
+        AppLogger.d('Home', 'Loaded history: $_routeHistory');
       }
     } catch (_) {}
   }
@@ -63,34 +64,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     } catch (_) {}
   }
 
-  Future<bool> _onWillPop() async {
+  void _onPopInvoked(bool didPop) async {
+    if (didPop) return;
+
     final location = GoRouterState.of(context).matchedLocation;
-    print('🔙 Back pressed from: $location');
-    print('📚 History: $_routeHistory');
-    
+    AppLogger.d('Home', 'Back pressed from: $location');
+    AppLogger.d('Home', 'History: $_routeHistory');
+
     // If we have history, go back to the last location
     if (_routeHistory.isNotEmpty) {
       final target = _routeHistory.removeLast();
       await _saveRouteHistory(); // Save after removing
-      print('✅ Navigating to: $target');
+      AppLogger.d('Home', 'Navigating to: $target');
       context.go(target);
-      return false;
+      return;
     }
 
-    print('⚠️ No history available');
-    
+    AppLogger.w('Home', 'No history available');
+
     // Check if we're on a pet detail page (profile tab)
-    final isPetDetailPage = location.startsWith('/pets/') && 
-                            !location.endsWith('/records') && 
+    final isPetDetailPage = location.startsWith('/pets/') &&
+                            !location.endsWith('/records') &&
                             !location.endsWith('/health') &&
                             location.split('/').length == 3;
-    
+
     if (isPetDetailPage) {
-      print('➡️ From pet detail to pet list: /');
+      AppLogger.d('Home', 'From pet detail to pet list: /');
       context.go('/');
-      return false;
+      return;
     }
-    
+
     // If on settings and no history, go to a safe pet route or root
     if (location == '/settings' || location.startsWith('/settings')) {
       try {
@@ -100,21 +103,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           petId = prefs.getString('last_selected_pet_id');
         }
         if (petId != null && petId.isNotEmpty) {
-          print('➡️ Fallback to pet detail: /pets/$petId');
+          AppLogger.d('Home', 'Fallback to pet detail: /pets/$petId');
           context.go('/pets/$petId');
         } else {
-          print('➡️ Fallback to root: /');
+          AppLogger.d('Home', 'Fallback to root: /');
           context.go('/');
         }
-        return false;
+        return;
       } catch (_) {
         context.go('/');
-        return false;
+        return;
       }
     }
 
-    print('⬅️ Allowing system back');
-    return true;
+    AppLogger.d('Home', 'Allowing system back');
   }
 
   Widget _buildTabIcon(IconData icon, int index) {
@@ -175,16 +177,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // Save current location to history before navigating
     final currentLocation = GoRouterState.of(context).matchedLocation;
-    print('📍 Tab tapped: $index, Current location: $currentLocation');
+    AppLogger.d('Home', 'Tab tapped: $index, Current location: $currentLocation');
     if (_routeHistory.isEmpty || _routeHistory.last != currentLocation) {
       _routeHistory
         ..clear()
         ..add(currentLocation);
       _saveRouteHistory(); // Save immediately
-      print('💾 Added to history: $currentLocation');
-      print('📚 History now: $_routeHistory');
+      AppLogger.d('Home', 'Added to history: $currentLocation');
+      AppLogger.d('Home', 'History now: $_routeHistory');
     } else {
-      print('⏭️ Skipped duplicate: $currentLocation');
+      AppLogger.d('Home', 'Skipped duplicate: $currentLocation');
     }
 
     setState(() => _currentIndex = index);
@@ -248,8 +250,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     }
 
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) => _onPopInvoked(didPop),
       child: Scaffold(
         body: widget.child,
         bottomNavigationBar: shouldShowBottomNav

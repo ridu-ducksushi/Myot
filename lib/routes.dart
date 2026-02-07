@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petcare/features/auth/login_screen.dart';
 import 'package:petcare/features/auth/signup_screen.dart';
-import 'package:petcare/features/settings/placeholder.dart';
+import 'package:petcare/features/settings/settings_screen.dart';
 import 'package:petcare/features/pets/pet_detail_screen.dart';
 import 'package:petcare/features/pets/pets_screen.dart';
 import 'package:petcare/features/records/records_screen.dart';
 import 'package:petcare/features/records/pet_records_screen.dart';
-import 'package:petcare/features/labs/placeholder.dart';
+import 'package:petcare/features/labs/health_tab_screen.dart';
 import 'package:petcare/features/labs/pet_health_screen.dart';
 import 'package:petcare/features/labs/chart_screen.dart';
 import 'package:petcare/features/records/records_chart_screen.dart';
@@ -84,13 +84,13 @@ final router = GoRouter(
     ),
     GoRoute(
       path: '/health',
-      builder: (context, state) => const HomeScreen(child: LabsPlaceholder()),
+      builder: (context, state) => const HomeScreen(child: HealthTabScreen()),
     ),
     GoRoute(
       path: '/settings',
       pageBuilder: (context, state) => NoTransitionPage(
         key: state.pageKey,
-        child: const HomeScreen(child: SettingsPlaceholder()),
+        child: const HomeScreen(child: SettingsScreen()),
       ),
     ),
     GoRoute(

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:petcare/utils/app_logger.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -81,9 +82,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      print('🔄 게스트 로그인 시도 중...');
+      AppLogger.d('Login', '게스트 로그인 시도 중...');
       final response = await Supabase.instance.client.auth.signInAnonymously();
-      print('✅ 게스트 로그인 성공: ${response.user?.id}');
+      AppLogger.d('Login', '게스트 로그인 성공: ${response.user?.id}');
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -92,7 +93,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } on AuthException catch (e) {
       final errorMessage = '게스트 로그인 실패: ${e.message} (코드: ${e.statusCode})';
-      print('❌ 게스트 로그인 AuthException: $errorMessage');
+      AppLogger.e('Login', '게스트 로그인 AuthException: $errorMessage', e);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -105,8 +106,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } catch (e, stackTrace) {
       final errorMessage = '게스트 로그인 에러: $e';
-      print('❌ 게스트 로그인 에러: $errorMessage');
-      print('스택 트레이스: $stackTrace');
+      AppLogger.e('Login', '게스트 로그인 에러: $errorMessage', e, stackTrace);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

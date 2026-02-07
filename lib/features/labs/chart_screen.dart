@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:petcare/core/providers/pets_provider.dart';
 import 'package:petcare/data/models/pet.dart';
 import 'package:petcare/data/services/lab_reference_ranges.dart';
+import 'package:petcare/utils/app_logger.dart';
 
 class ChartScreen extends ConsumerStatefulWidget {
   const ChartScreen({
@@ -88,7 +89,7 @@ class _ChartScreenState extends ConsumerState<ChartScreen> {
         });
       }
     } catch (e) {
-      print('❌ Load test items error: $e');
+      AppLogger.e('ChartScreen', 'Load test items error', e);
     }
   }
 
@@ -145,7 +146,7 @@ class _ChartScreenState extends ConsumerState<ChartScreen> {
         });
       }
     } catch (e) {
-      print('❌ Load chart data error: $e');
+      AppLogger.e('ChartScreen', 'Load chart data error', e);
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -228,7 +229,7 @@ class _ChartScreenState extends ConsumerState<ChartScreen> {
     
     return Scaffold(
       appBar: AppBar(
-        title: Text('$petName - 검사 결과 차트'),
+        title: Text('chart.test_result_title'.tr(args: [petName])),
         backgroundColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.95),
         elevation: 2,
         leading: IconButton(
@@ -254,12 +255,12 @@ class _ChartScreenState extends ConsumerState<ChartScreen> {
                 // 검사 항목 선택
                 Row(
                   children: [
-                    const Text('검사 항목: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text('${'chart.test_item_label'.tr()}: ', style: const TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: DropdownButton<String>(
                         value: _selectedTestItem,
-                        hint: const Text('검사 항목을 선택하세요'),
+                        hint: Text('chart.select_test_item'.tr()),
                         isExpanded: true,
                         items: _getTestItemOptions().map((item) {
                           return DropdownMenuItem(
@@ -285,7 +286,7 @@ class _ChartScreenState extends ConsumerState<ChartScreen> {
                     spacing: 8,
                     children: [
                       ChoiceChip(
-                        label: const Text('일간'),
+                        label: Text('views.daily'.tr()),
                         selected: _viewMode == 'day',
                         onSelected: (v) {
                           if (!v) return;
@@ -296,7 +297,7 @@ class _ChartScreenState extends ConsumerState<ChartScreen> {
                         },
                       ),
                       ChoiceChip(
-                        label: const Text('주간'),
+                        label: Text('views.weekly'.tr()),
                         selected: _viewMode == 'week',
                         onSelected: (v) {
                           if (!v) return;
@@ -307,7 +308,7 @@ class _ChartScreenState extends ConsumerState<ChartScreen> {
                         },
                       ),
                       ChoiceChip(
-                        label: const Text('월간'),
+                        label: Text('views.monthly'.tr()),
                         selected: _viewMode == 'month',
                         onSelected: (v) {
                           if (!v) return;
@@ -339,7 +340,7 @@ class _ChartScreenState extends ConsumerState<ChartScreen> {
                               const SizedBox(width: 8),
                               Flexible(
                                 child: Text(
-                                  '시작: ${DateFormat('yyyy-MM-dd').format(_startDate)}',
+                                  '${'chart.start_date'.tr()}: ${DateFormat('yyyy-MM-dd').format(_startDate)}',
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(fontSize: 14),
                                 ),
@@ -365,7 +366,7 @@ class _ChartScreenState extends ConsumerState<ChartScreen> {
                               const SizedBox(width: 8),
                               Flexible(
                                 child: Text(
-                                  '종료: ${DateFormat('yyyy-MM-dd').format(_endDate)}',
+                                  '${'chart.end_date'.tr()}: ${DateFormat('yyyy-MM-dd').format(_endDate)}',
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(fontSize: 14),
                                 ),
@@ -396,7 +397,7 @@ class _ChartScreenState extends ConsumerState<ChartScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              '선택한 기간에 데이터가 없습니다',
+                              'chart.no_data_for_period'.tr(),
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.grey[600],

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:petcare/data/models/pet.dart';
 import 'package:petcare/data/repositories/pets_repository.dart';
+import 'package:petcare/utils/app_logger.dart';
 
 /// State class for pets list
 class PetsState {
@@ -38,16 +39,16 @@ class PetsNotifier extends StateNotifier<PetsState> {
     state = state.copyWith(isLoading: true, error: null);
     
     try {
-      print('🔄 펫 데이터 로드 시작...');
+      AppLogger.d('PetsProvider', '펫 데이터 로드 시작...');
       final pets = await _petsRepository.getAllPets();
-      print('✅ ${pets.length}개 펫 로드 완료');
+      AppLogger.d('PetsProvider', '${pets.length}개 펫 로드 완료');
       
       state = state.copyWith(
         pets: pets,
         isLoading: false,
       );
     } catch (e) {
-      print('❌ 펫 로드 실패: $e');
+      AppLogger.e('PetsProvider', '펫 로드 실패', e);
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -60,7 +61,7 @@ class PetsNotifier extends StateNotifier<PetsState> {
     state = state.copyWith(isLoading: true, error: null);
     
     try {
-      print('➕ 새 펫 추가 시작: ${pet.name}');
+      AppLogger.d('PetsProvider', '새 펫 추가 시작: ${pet.name}');
       final savedPet = await _petsRepository.createPet(pet);
       
       final updatedPets = [...state.pets, savedPet];
@@ -68,9 +69,9 @@ class PetsNotifier extends StateNotifier<PetsState> {
         pets: updatedPets,
         isLoading: false,
       );
-      print('✅ 펫 추가 완료: ${savedPet.name}');
+      AppLogger.d('PetsProvider', '펫 추가 완료: ${savedPet.name}');
     } catch (e) {
-      print('❌ 펫 추가 실패: $e');
+      AppLogger.e('PetsProvider', '펫 추가 실패', e);
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -83,7 +84,7 @@ class PetsNotifier extends StateNotifier<PetsState> {
     state = state.copyWith(isLoading: true, error: null);
     
     try {
-      print('📝 펫 업데이트 시작: ${updatedPet.name}');
+      AppLogger.d('PetsProvider', '펫 업데이트 시작: ${updatedPet.name}');
       final savedPet = await _petsRepository.updatePet(updatedPet);
       
       final updatedPets = state.pets.map((pet) {
@@ -94,9 +95,9 @@ class PetsNotifier extends StateNotifier<PetsState> {
         pets: updatedPets,
         isLoading: false,
       );
-      print('✅ 펫 업데이트 완료: ${savedPet.name}');
+      AppLogger.d('PetsProvider', '펫 업데이트 완료: ${savedPet.name}');
     } catch (e) {
-      print('❌ 펫 업데이트 실패: $e');
+      AppLogger.e('PetsProvider', '펫 업데이트 실패', e);
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -109,7 +110,7 @@ class PetsNotifier extends StateNotifier<PetsState> {
     state = state.copyWith(isLoading: true, error: null);
     
     try {
-      print('🗑️ 펫 삭제 시작: $petId');
+      AppLogger.d('PetsProvider', '펫 삭제 시작: $petId');
       await _petsRepository.deletePet(petId);
       
       final updatedPets = state.pets.where((pet) => pet.id != petId).toList();
@@ -117,9 +118,9 @@ class PetsNotifier extends StateNotifier<PetsState> {
         pets: updatedPets,
         isLoading: false,
       );
-      print('✅ 펫 삭제 완료: $petId');
+      AppLogger.d('PetsProvider', '펫 삭제 완료: $petId');
     } catch (e) {
-      print('❌ 펫 삭제 실패: $e');
+      AppLogger.e('PetsProvider', '펫 삭제 실패', e);
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),

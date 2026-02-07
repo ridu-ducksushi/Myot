@@ -6,6 +6,7 @@ import 'package:petcare/core/providers/pets_provider.dart';
 import 'package:petcare/data/models/record.dart';
 import 'package:petcare/ui/widgets/common_widgets.dart';
 import 'package:petcare/ui/theme/app_colors.dart';
+import 'package:petcare/utils/record_utils.dart';
 
 class RecordsScreen extends ConsumerStatefulWidget {
   const RecordsScreen({super.key});
@@ -155,7 +156,7 @@ class _RecordCard extends ConsumerWidget {
                 border: Border.all(color: typeColor.withOpacity(0.3)),
               ),
               child: Icon(
-                _getRecordIcon(record.type),
+                RecordUtils.getIconForSimpleType(record.type),
                 color: typeColor,
                 size: 24,
               ),
@@ -218,32 +219,6 @@ class _RecordCard extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  IconData _getRecordIcon(String type) {
-    switch (type.toLowerCase()) {
-      case 'meal':
-        return Icons.restaurant;
-      case 'snack':
-        return Icons.cookie;
-      case 'med':
-      case 'medicine':
-        return Icons.medical_services;
-      case 'vaccine':
-        return Icons.vaccines;
-      case 'visit':
-        return Icons.local_hospital;
-      case 'weight':
-        return Icons.monitor_weight;
-      case 'litter':
-        return Icons.cleaning_services;
-      case 'play':
-        return Icons.sports_tennis;
-      case 'groom':
-        return Icons.content_cut;
-      default:
-        return Icons.note;
-    }
   }
 
   void _showRecordDetails(BuildContext context, Record record) {
@@ -368,7 +343,7 @@ class _AddRecordSheetState extends ConsumerState<_AddRecordSheet> {
                               child: Row(
                                 children: [
                                   Icon(
-                                    _getRecordIcon(type),
+                                    RecordUtils.getIconForSimpleType(type),
                                     size: 16,
                                     color: AppColors.getRecordTypeColor(type),
                                   ),
@@ -453,32 +428,6 @@ class _AddRecordSheetState extends ConsumerState<_AddRecordSheet> {
         },
       ),
     );
-  }
-
-  IconData _getRecordIcon(String type) {
-    switch (type.toLowerCase()) {
-      case 'meal':
-        return Icons.restaurant;
-      case 'snack':
-        return Icons.cookie;
-      case 'med':
-      case 'medicine':
-        return Icons.medical_services;
-      case 'vaccine':
-        return Icons.vaccines;
-      case 'visit':
-        return Icons.local_hospital;
-      case 'weight':
-        return Icons.monitor_weight;
-      case 'litter':
-        return Icons.cleaning_services;
-      case 'play':
-        return Icons.sports_tennis;
-      case 'groom':
-        return Icons.content_cut;
-      default:
-        return Icons.note;
-    }
   }
 
   Future<void> _selectDateTime() async {

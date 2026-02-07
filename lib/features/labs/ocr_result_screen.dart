@@ -73,7 +73,7 @@ class _OcrResultScreenState extends State<OcrResultScreen> {
     } catch (e) {
       setState(() {
         _isProcessing = false;
-        _errorMessage = '이미지 처리 중 오류가 발생했습니다: $e';
+        _errorMessage = 'ocr.process_error'.tr(args: [e.toString()]);
       });
     }
   }
@@ -96,13 +96,13 @@ class _OcrResultScreenState extends State<OcrResultScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('OCR 인식 결과'),
+        title: Text('ocr.result_title'.tr()),
         actions: [
           if (!_isProcessing && _results.isNotEmpty)
             TextButton(
               onPressed: _onConfirm,
               child: Text(
-                '적용',
+                'common.apply'.tr(),
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.bold,
@@ -117,13 +117,13 @@ class _OcrResultScreenState extends State<OcrResultScreen> {
   
   Widget _buildBody() {
     if (_isProcessing) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('이미지 분석 중...'),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text('ocr.analyzing'.tr()),
           ],
         ),
       );
@@ -150,7 +150,7 @@ class _OcrResultScreenState extends State<OcrResultScreen> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _processImage,
-                child: const Text('다시 시도'),
+                child: Text('common.retry'.tr()),
               ),
             ],
           ),
@@ -171,16 +171,16 @@ class _OcrResultScreenState extends State<OcrResultScreen> {
                 color: Colors.grey[400],
               ),
               const SizedBox(height: 16),
-              const Text(
-                '인식된 검사 항목이 없습니다',
-                style: TextStyle(
+              Text(
+                'ocr.no_items_found'.tr(),
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                '건강검진표가 잘 보이도록 다시 촬영해주세요',
+                'ocr.retake_photo_hint'.tr(),
                 style: TextStyle(color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
@@ -188,12 +188,12 @@ class _OcrResultScreenState extends State<OcrResultScreen> {
               ElevatedButton.icon(
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.camera_alt),
-                label: const Text('다시 촬영'),
+                label: Text('ocr.retake_photo'.tr()),
               ),
               const SizedBox(height: 32),
               // 원본 텍스트 표시 토글
               ExpansionTile(
-                title: const Text('인식된 원본 텍스트'),
+                title: Text('ocr.raw_text_title'.tr()),
                 children: [
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -202,7 +202,7 @@ class _OcrResultScreenState extends State<OcrResultScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: SelectableText(
-                      _rawText.isEmpty ? '텍스트가 인식되지 않았습니다' : _rawText,
+                      _rawText.isEmpty ? 'ocr.no_text_recognized'.tr() : _rawText,
                       style: const TextStyle(fontSize: 12),
                     ),
                   ),
@@ -259,7 +259,7 @@ class _OcrResultScreenState extends State<OcrResultScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '숫자가 잘못 인식되면 직접 수정하거나 한 줄씩 또렷하게 나온 사진을 다시 선택해 주세요.',
+                    'ocr.edit_hint'.tr(),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
@@ -281,7 +281,7 @@ class _OcrResultScreenState extends State<OcrResultScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                '${_results.length}개 항목이 인식되었습니다',
+                'ocr.items_recognized'.tr(args: [_results.length.toString()]),
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.w500,
@@ -297,7 +297,7 @@ class _OcrResultScreenState extends State<OcrResultScreen> {
                   }
                 }),
                 child: Text(
-                  _selectedItems.length == _results.length ? '전체 해제' : '전체 선택',
+                  _selectedItems.length == _results.length ? 'common.deselect_all'.tr() : 'common.select_all'.tr(),
                 ),
               ),
             ],
@@ -375,7 +375,7 @@ class _OcrResultScreenState extends State<OcrResultScreen> {
                     ),
                     if (reference.isNotEmpty)
                       Text(
-                        '기준: $reference',
+                        '${'ocr.reference_prefix'.tr()}: $reference',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],

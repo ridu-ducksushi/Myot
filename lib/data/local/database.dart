@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:petcare/data/models/pet.dart';
 import 'package:petcare/data/models/record.dart';
 import 'package:petcare/data/models/reminder.dart';
+import 'package:petcare/utils/app_logger.dart';
 
 /// Local database service using SharedPreferences for persistent storage
 class LocalDatabase {
@@ -90,7 +91,7 @@ class LocalDatabase {
   
   Future<void> _init() async {
     _prefs = await SharedPreferences.getInstance();
-    print('✅ LocalDatabase 초기화 완료 (SharedPreferences 사용)');
+    AppLogger.d('LocalDB', 'LocalDatabase 초기화 완료 (SharedPreferences 사용)');
   }
   
   /// Close the database
@@ -103,7 +104,7 @@ class LocalDatabase {
     await _removeScopedKey(_petsKey);
     await _removeScopedKey(_recordsKey);
     await _removeScopedKey(_remindersKey);
-    print('🗑️ 모든 로컬 데이터 삭제 완료');
+    AppLogger.d('LocalDB', '모든 로컬 데이터 삭제 완료');
   }
   
   // Pet operations
@@ -114,10 +115,10 @@ class LocalDatabase {
       
       final List<dynamic> petsList = json.decode(petsJson);
       final pets = petsList.map((json) => Pet.fromJson(json as Map<String, dynamic>)).toList();
-      print('📱 로컬에서 ${pets.length}개 펫 로드');
+      AppLogger.d('LocalDB', '로컬에서 ${pets.length}개 펫 로드');
       return pets;
     } catch (e) {
-      print('❌ 펫 데이터 로드 실패: $e');
+      AppLogger.e('LocalDB', '펫 데이터 로드 실패', e);
       return [];
     }
   }
@@ -129,10 +130,10 @@ class LocalDatabase {
       if (petsJson == null) return [];
       final List<dynamic> petsList = json.decode(petsJson);
       final pets = petsList.map((json) => Pet.fromJson(json as Map<String, dynamic>)).toList();
-      print('📱 [$scopeUserId] 스코프에서 ${pets.length}개 펫 로드');
+      AppLogger.d('LocalDB', '[$scopeUserId] 스코프에서 ${pets.length}개 펫 로드');
       return pets;
     } catch (e) {
-      print('❌ [$scopeUserId] 스코프 펫 로드 실패: $e');
+      AppLogger.e('LocalDB', '[$scopeUserId] 스코프 펫 로드 실패', e);
       return [];
     }
   }
@@ -153,17 +154,17 @@ class LocalDatabase {
       
       if (index >= 0) {
         pets[index] = pet;
-        print('📝 펫 업데이트: ${pet.name}');
+        AppLogger.d('LocalDB', '펫 업데이트: ${pet.name}');
       } else {
         pets.add(pet);
-        print('➕ 새 펫 추가: ${pet.name}');
+        AppLogger.d('LocalDB', '새 펫 추가: ${pet.name}');
       }
       
       final petsJson = json.encode(pets.map((p) => p.toJson()).toList());
       await _setScopedString(_petsKey, petsJson);
-      print('💾 펫 데이터 저장 완료 (총 ${pets.length}개)');
+      AppLogger.d('LocalDB', '펫 데이터 저장 완료 (총 ${pets.length}개)');
     } catch (e) {
-      print('❌ 펫 저장 실패: $e');
+      AppLogger.e('LocalDB', '펫 저장 실패', e);
     }
   }
   
@@ -175,9 +176,9 @@ class LocalDatabase {
       
       final petsJson = json.encode(pets.map((p) => p.toJson()).toList());
       await _setScopedString(_petsKey, petsJson);
-      print('🗑️ 펫 삭제 완료 (${initialCount} → ${pets.length})');
+      AppLogger.d('LocalDB', '펫 삭제 완료 (${initialCount} → ${pets.length})');
     } catch (e) {
-      print('❌ 펫 삭제 실패: $e');
+      AppLogger.e('LocalDB', '펫 삭제 실패', e);
     }
   }
   
@@ -190,7 +191,7 @@ class LocalDatabase {
       final List<dynamic> recordsList = json.decode(recordsJson);
       return recordsList.map((json) => Record.fromJson(json as Map<String, dynamic>)).toList();
     } catch (e) {
-      print('❌ 기록 데이터 로드 실패: $e');
+      AppLogger.e('LocalDB', '기록 데이터 로드 실패', e);
       return [];
     }
   }
@@ -214,7 +215,7 @@ class LocalDatabase {
       final recordsJson = json.encode(records.map((r) => r.toJson()).toList());
       await _setScopedString(_recordsKey, recordsJson);
     } catch (e) {
-      print('❌ 기록 저장 실패: $e');
+      AppLogger.e('LocalDB', '기록 저장 실패', e);
     }
   }
   
@@ -226,7 +227,7 @@ class LocalDatabase {
       final recordsJson = json.encode(records.map((r) => r.toJson()).toList());
       await _setScopedString(_recordsKey, recordsJson);
     } catch (e) {
-      print('❌ 기록 삭제 실패: $e');
+      AppLogger.e('LocalDB', '기록 삭제 실패', e);
     }
   }
   
@@ -239,7 +240,7 @@ class LocalDatabase {
       final List<dynamic> remindersList = json.decode(remindersJson);
       return remindersList.map((json) => Reminder.fromJson(json as Map<String, dynamic>)).toList();
     } catch (e) {
-      print('❌ 리마인더 데이터 로드 실패: $e');
+      AppLogger.e('LocalDB', '리마인더 데이터 로드 실패', e);
       return [];
     }
   }
@@ -263,7 +264,7 @@ class LocalDatabase {
       final remindersJson = json.encode(reminders.map((r) => r.toJson()).toList());
       await _setScopedString(_remindersKey, remindersJson);
     } catch (e) {
-      print('❌ 리마인더 저장 실패: $e');
+      AppLogger.e('LocalDB', '리마인더 저장 실패', e);
     }
   }
   
@@ -275,7 +276,7 @@ class LocalDatabase {
       final remindersJson = json.encode(reminders.map((r) => r.toJson()).toList());
       await _setScopedString(_remindersKey, remindersJson);
     } catch (e) {
-      print('❌ 리마인더 삭제 실패: $e');
+      AppLogger.e('LocalDB', '리마인더 삭제 실패', e);
     }
   }
 
@@ -284,31 +285,31 @@ class LocalDatabase {
     try {
       final prefs = _prefs;
       if (prefs == null) {
-        print('❌ debugDumpAllPetScopes: prefs is null');
+        AppLogger.e('LocalDB', 'debugDumpAllPetScopes: prefs is null');
         return;
       }
 
       final keys = prefs.getKeys();
-      print('🗝️ SharedPreferences 키 개수: ${keys.length}');
+      AppLogger.d('LocalDB', 'SharedPreferences 키 개수: ${keys.length}');
 
       // Pets-related keys
       final petsKeys = keys.where((k) => k.startsWith('pets')).toList()..sort();
-      print('🐾 Pets 관련 키 (${petsKeys.length}): ${petsKeys.join(', ')}');
+      AppLogger.d('LocalDB', 'Pets 관련 키 (${petsKeys.length}): ${petsKeys.join(', ')}');
 
       // 각 스코프별 펫 개수 덤프
       Future<void> dumpScope(String scope) async {
         final val = prefs.getString('pets_$scope');
         if (val == null) {
-          print('📦 스코프 "$scope": 0개');
+          AppLogger.d('LocalDB', '스코프 "$scope": 0개');
           return;
         }
         try {
           final list = (json.decode(val) as List<dynamic>)
               .map((e) => Pet.fromJson(e as Map<String, dynamic>))
               .toList();
-          print('📦 스코프 "$scope": ${list.length}개 → ' + list.map((p) => p.name).take(10).join(', '));
+          AppLogger.d('LocalDB', '스코프 "$scope": ${list.length}개 → ' + list.map((p) => p.name).take(10).join(', '));
         } catch (e) {
-          print('⚠️ 스코프 "$scope" 디코딩 실패: $e');
+          AppLogger.w('LocalDB', '스코프 "$scope" 디코딩 실패: $e');
         }
       }
 
@@ -332,7 +333,7 @@ class LocalDatabase {
         await dumpScope(scope);
       }
     } catch (e) {
-      print('❌ debugDumpAllPetScopes 실패: $e');
+      AppLogger.e('LocalDB', 'debugDumpAllPetScopes 실패', e);
     }
   }
 }

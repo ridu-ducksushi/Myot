@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:petcare/features/reminders/reminders_screen.dart';
 
-class LabsPlaceholder extends StatelessWidget {
-  const LabsPlaceholder({super.key});
+class HealthTabScreen extends StatelessWidget {
+  const HealthTabScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

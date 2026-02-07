@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
@@ -15,8 +14,10 @@ import 'package:petcare/ui/widgets/profile_image_picker.dart';
 import 'package:petcare/features/labs/weight_chart_screen.dart';
 import 'package:petcare/ui/theme/app_colors.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:petcare/utils/app_logger.dart';
+import 'package:petcare/features/pets/widgets/edit_pet_sheet.dart';
+import 'package:petcare/features/pets/widgets/edit_supplies_sheet.dart';
 
 class PetDetailScreen extends ConsumerStatefulWidget {
   const PetDetailScreen({
@@ -148,7 +149,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
         });
       }
     } catch (e) {
-      print('❌ Error loading supplies record dates: $e');
+      AppLogger.e('PetDetail', 'Error loading supplies record dates', e);
     }
   }
 
@@ -164,7 +165,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
         });
       }
     } catch (e) {
-      print('❌ Error loading current supplies: $e');
+      AppLogger.e('PetDetail', 'Error loading current supplies', e);
     }
   }
 
@@ -321,7 +322,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                              content: Text('프로필이 설정되었습니다'),
+                              content: Text('pets.profile_set_success'.tr()),
                           backgroundColor: Theme.of(context).colorScheme.primary,
                         ),
                       );
@@ -330,7 +331,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                              content: Text('프로필 설정에 실패했습니다'),
+                              content: Text('pets.profile_set_error'.tr()),
                           backgroundColor: Theme.of(context).colorScheme.error,
                         ),
                       );
@@ -355,7 +356,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
                       ),
                         // 디버그: 품종 정보 로그
                         Builder(builder: (context) {
-                          print('🔍 품종 정보: breed="${pet.breed}", isNull=${pet.breed == null}, isEmpty=${pet.breed?.isEmpty ?? true}');
+                          AppLogger.d('PetDetail', '품종 정보: breed="${pet.breed}", isNull=${pet.breed == null}, isEmpty=${pet.breed?.isEmpty ?? true}');
                           return const SizedBox.shrink();
                         }),
                         if (pet.breed != null && pet.breed!.isNotEmpty) ...[
@@ -559,7 +560,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
                           children: [
                   Flexible(
                     child: Text(
-                                DateFormat('yyyy년 MM월 dd일').format(_currentSuppliesDate),
+                                DateFormat.yMMMd(context.locale.toString()).format(_currentSuppliesDate),
                                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -624,7 +625,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          '선택한 날짜의 기록이 없습니다',
+                          'supplies.no_record_for_date'.tr(),
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -639,7 +640,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
                 child: _buildSupplyItem(
                 context,
                 icon: Icons.restaurant,
-                  label: '건사료',
+                  label: 'supplies.dry_food'.tr(),
                   value: _currentSupplies?.dryFood,
                 ),
               ),
@@ -650,7 +651,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
                 child: _buildSupplyItem(
                   context,
                   icon: Icons.rice_bowl,
-                  label: '습식사료',
+                  label: 'supplies.wet_food'.tr(),
                   value: _currentSupplies?.wetFood,
                 ),
               ),
@@ -661,7 +662,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
                 child: _buildSupplyItem(
                 context,
                 icon: Icons.medication,
-                label: '영양제',
+                label: 'supplies.supplement'.tr(),
                   value: _currentSupplies?.supplement,
                 ),
               ),
@@ -672,7 +673,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
                 child: _buildSupplyItem(
                 context,
                 icon: Icons.cookie,
-                label: '간식',
+                label: 'supplies.snack'.tr(),
                   value: _currentSupplies?.snack,
                 ),
               ),
@@ -747,14 +748,14 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
 
   String _getSexWithNeuteredText(Pet pet) {
     // 성별 텍스트
-    String sexText = pet.sex == 'Male' ? '남아' : (pet.sex == 'Female' ? '여아' : pet.sex ?? '');
-    
+    String sexText = pet.sex == 'Male' ? 'settings.sex_male'.tr() : (pet.sex == 'Female' ? 'settings.sex_female'.tr() : pet.sex ?? '');
+
     // 중성화 여부 텍스트
     String neuteredText = '';
     if (pet.neutered == true) {
-      neuteredText = ' / 중성화 완료';
+      neuteredText = ' / ${'pets.neutered_yes'.tr()}';
     } else if (pet.neutered == false) {
-      neuteredText = ' / 중성화 미완료';
+      neuteredText = ' / ${'pets.neutered_no'.tr()}';
     }
     
     return sexText + neuteredText;
@@ -764,7 +765,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _EditSuppliesSheet(
+      builder: (context) => EditSuppliesSheet(
         pet: pet, 
         selectedDate: _currentSuppliesDate,
         existingSupplies: _currentSupplies,
@@ -785,7 +786,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _EditPetSheet(
+      builder: (context) => EditPetSheet(
         pet: pet,
         initialFocusField: focusField,
       ),
@@ -820,7 +821,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
       _loadCurrentSupplies();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이전 기록이 없습니다')),
+        SnackBar(content: Text('supplies.no_previous'.tr())),
       );
     }
   }
@@ -852,7 +853,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
     } else {
       // 이미 오늘 날짜인 경우
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('현재 최신 기록입니다')),
+        SnackBar(content: Text('supplies.latest_record'.tr())),
       );
     }
   }
@@ -868,7 +869,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                '날짜 선택',
+                'common.select_date'.tr(),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
@@ -936,7 +937,7 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('닫기'),
+                child: Text('common.close'.tr()),
               ),
             ],
           ),
@@ -996,816 +997,3 @@ class _InfoCard extends StatelessWidget {
     );
   }
 }
-
-class _EditPetSheet extends ConsumerStatefulWidget {
-  const _EditPetSheet({
-    required this.pet,
-    this.initialFocusField,
-  });
-
-  final Pet pet;
-  final String? initialFocusField;
-
-  @override
-  ConsumerState<_EditPetSheet> createState() => _EditPetSheetState();
-}
-
-class _EditPetSheetState extends ConsumerState<_EditPetSheet> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _breedController = TextEditingController();
-  final _weightController = TextEditingController();
-  final _noteController = TextEditingController();
-  final FocusNode _nameFocusNode = FocusNode();
-  final FocusNode _speciesFocusNode = FocusNode();
-  final FocusNode _breedFocusNode = FocusNode();
-  final FocusNode _sexFocusNode = FocusNode();
-  final FocusNode _weightFocusNode = FocusNode();
-  final FocusNode _noteFocusNode = FocusNode();
-  final FocusNode _birthDateFocusNode = FocusNode();
-  final GlobalKey _birthDateTileKey = GlobalKey();
-  final TextEditingController _customSpeciesController = TextEditingController(); // Other 선택 시 종 입력용
-  
-  String _selectedSpecies = 'Dog';
-  String? _selectedSex;
-  bool? _isNeutered;
-  DateTime? _birthDate;
-  
-  final List<String> _species = [
-    'Dog', 'Cat', 'Other'
-  ];
-  
-  final List<String> _sexOptions = ['남아', '여아'];
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeForm();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final target = widget.initialFocusField;
-      debugPrint('🧭 EditPet initial focus target: $target');
-      if (target == 'birthDate') {
-        _birthDateFocusNode.requestFocus();
-        _selectBirthDate(auto: true);
-        Future.microtask(() {
-          final context = _birthDateTileKey.currentContext;
-          if (context != null) {
-            Scrollable.ensureVisible(
-              context,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-            );
-          }
-        });
-        return;
-      }
-      switch (target) {
-        case 'species':
-          _speciesFocusNode.requestFocus();
-          break;
-        case 'breed':
-          _breedFocusNode.requestFocus();
-          break;
-        case 'weight':
-          _weightFocusNode.requestFocus();
-          break;
-        case 'note':
-          _noteFocusNode.requestFocus();
-          break;
-        case 'sex':
-          _sexFocusNode.requestFocus();
-          break;
-        default:
-          _nameFocusNode.requestFocus();
-      }
-    });
-  }
-
-  void _initializeForm() {
-    final pet = widget.pet;
-    _nameController.text = pet.name;
-    _breedController.text = pet.breed ?? '';
-    _weightController.text = pet.weightKg?.toString() ?? '';
-    _noteController.text = pet.note ?? '';
-    
-    // 기존 펫의 species가 표준 종류(Dog, Cat, Other)가 아니면 커스텀 종으로 간주
-    if (_species.contains(pet.species)) {
-      _selectedSpecies = pet.species;
-    } else {
-      // 커스텀 종인 경우 Other로 설정하고 커스텀 종 필드에 값 설정
-      _selectedSpecies = 'Other';
-      _customSpeciesController.text = pet.species;
-    }
-    // Male/Female을 남아/여아로 변환
-    _selectedSex = pet.sex == 'Male' ? '남아' : (pet.sex == 'Female' ? '여아' : pet.sex);
-    _isNeutered = pet.neutered;
-    _birthDate = pet.birthDate;
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _breedController.dispose();
-    _weightController.dispose();
-    _noteController.dispose();
-    _customSpeciesController.dispose();
-    _nameFocusNode.dispose();
-    _speciesFocusNode.dispose();
-    _breedFocusNode.dispose();
-    _sexFocusNode.dispose();
-    _weightFocusNode.dispose();
-    _noteFocusNode.dispose();
-    _birthDateFocusNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        maxChildSize: 0.9,
-        minChildSize: 0.5,
-        expand: false,
-        builder: (context, scrollController) {
-          return SafeArea(
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  // Handle
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.outline,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Title
-                  Text(
-                    'pets.edit_title'.tr(),
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Form fields
-                  Expanded(
-                    child: ListView(
-                      controller: scrollController,
-                      padding: const EdgeInsets.only(top: 8),
-                      children: [
-                        // 종류 필드
-                        DropdownButtonFormField<String>(
-                          value: _selectedSpecies,
-                          focusNode: _speciesFocusNode,
-                          decoration: InputDecoration(
-                            labelText: 'pets.species'.tr(),
-                            prefixIcon: const Icon(Icons.category),
-                          ),
-                          items: _species
-                              .map(
-                                (species) => DropdownMenuItem<String>(
-                              value: species,
-                              child: Text(species),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            setState(() {
-                              _selectedSpecies = value;
-                              // Other가 아닌 종류로 변경 시 커스텀 종 입력 필드 초기화
-                              if (value != 'Other') {
-                                _customSpeciesController.clear();
-                              }
-                            });
-                            // Other 선택 시 커스텀 종 필드로 포커스 이동, 그 외에는 품종 필드로
-                            if (value == 'Other') {
-                              // 커스텀 종 필드는 아래에 추가되므로 포커스는 그대로 유지
-                            } else {
-                              FocusScope.of(context).requestFocus(_breedFocusNode);
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Other 선택 시 종을 직접 입력할 수 있는 필드
-                        if (_selectedSpecies == 'Other') ...[
-                          AppTextField(
-                            controller: _customSpeciesController,
-                            labelText: 'pets.custom_species_label'.tr(),
-                            prefixIcon: const Icon(Icons.pets),
-                            validator: (value) {
-                              if (value?.trim().isEmpty ?? true) {
-                                return 'pets.breed_required_for_other'.tr();
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        
-                        // 품종 필드
-                        AppTextField(
-                          controller: _breedController,
-                          labelText: 'pets.breed'.tr(),
-                          prefixIcon: const Icon(Icons.info_outline),
-                          focusNode: _breedFocusNode,
-                          textInputAction: TextInputAction.next,
-                          onSubmitted: (_) =>
-                              FocusScope.of(context).requestFocus(_nameFocusNode),
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // 이름 필드
-                        AppTextField(
-                          controller: _nameController,
-                          labelText: 'pets.name'.tr(),
-                          prefixIcon: const Icon(Icons.pets),
-                          focusNode: _nameFocusNode,
-                          textInputAction: TextInputAction.next,
-                          onSubmitted: (_) =>
-                              FocusScope.of(context).requestFocus(_weightFocusNode),
-                          validator: (value) {
-                            if (value?.trim().isEmpty ?? true) {
-                              return 'pets.name_required'.tr();
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // 성별 필드
-                        DropdownButtonFormField<String>(
-                          value: _selectedSex,
-                          decoration: InputDecoration(
-                            labelText: 'pets.sex'.tr(),
-                            prefixIcon: const Icon(Icons.wc),
-                          ),
-                          focusNode: _sexFocusNode,
-                          items: _sexOptions.map((sex) {
-                            return DropdownMenuItem(
-                              value: sex,
-                              child: Text(sex),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedSex = value;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        CheckboxListTile(
-                          title: Text('pets.neutered'.tr()),
-                          subtitle: Text('pets.neutered_description'.tr()),
-                          value: _isNeutered ?? false,
-                          onChanged: (value) {
-                            setState(() {
-                              _isNeutered = value;
-                            });
-                          },
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        AppTextField(
-                          controller: _weightController,
-                          labelText: 'pets.weight_kg'.tr(),
-                          prefixIcon: const Icon(Icons.monitor_weight),
-                          keyboardType: TextInputType.number,
-                          focusNode: _weightFocusNode,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                          ],
-                          validator: (value) {
-                            if (value?.isNotEmpty == true) {
-                              final weight = double.tryParse(value!);
-                              if (weight == null || weight <= 0) {
-                                return 'pets.weight_invalid'.tr();
-                              }
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        Focus(
-                          focusNode: _birthDateFocusNode,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () => _selectBirthDate(),
-                            child: ListTile(
-                              key: _birthDateTileKey,
-                          leading: const Icon(Icons.cake),
-                          title: Text('pets.birth_date'.tr()),
-                          subtitle: Text(
-                            _birthDate != null
-                                ? DateFormat.yMMMd().format(_birthDate!)
-                                : 'pets.select_birth_date'.tr(),
-                          ),
-                          contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        AppTextField(
-                          controller: _noteController,
-                          labelText: 'pets.notes'.tr(),
-                          prefixIcon: const Icon(Icons.note),
-                          maxLines: 3,
-                          focusNode: _noteFocusNode,
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // Buttons
-                  const SizedBox(height: 40),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: Text('common.cancel'.tr()),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: _updatePet,
-                          child: Text('common.save'.tr()),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 40),
-                ],
-              ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Future<void> _selectBirthDate({bool auto = false}) async {
-    if (!auto) {
-      FocusScope.of(context).requestFocus(_birthDateFocusNode);
-    }
-    final date = await showDatePicker(
-      context: context,
-      initialDate: _birthDate ?? DateTime.now().subtract(const Duration(days: 365)),
-      firstDate: DateTime.now().subtract(const Duration(days: 365 * 30)),
-      lastDate: DateTime.now(),
-    );
-    
-    if (!mounted) return;
-    
-    if (date != null) {
-      setState(() {
-        _birthDate = date;
-      });
-    }
-
-    if (auto) {
-      FocusScope.of(context).requestFocus(_birthDateFocusNode);
-    } else {
-      _birthDateFocusNode.unfocus();
-      FocusScope.of(context).requestFocus(_noteFocusNode);
-    }
-  }
-
-  Future<void> _updatePet() async {
-    if (_formKey.currentState?.validate() != true) return;
-    
-    // 남아/여아를 Male/Female로 변환 (DB 저장용)
-    String? sexForDb = _selectedSex;
-    if (_selectedSex == '남아') sexForDb = 'Male';
-    if (_selectedSex == '여아') sexForDb = 'Female';
-    
-    final breedValue = _breedController.text.trim();
-    print('🔍 품종 저장 디버그: 원본="${_breedController.text}", trim="${breedValue}", isEmpty=${breedValue.isEmpty}');
-    
-    // Other 선택 시 커스텀 종을 사용, 그 외에는 선택한 종류 사용
-    final species = _selectedSpecies == 'Other'
-        ? _customSpeciesController.text.trim()
-        : _selectedSpecies;
-    
-    final updatedPet = widget.pet.copyWith(
-      name: _nameController.text.trim(),
-      species: species,
-      breed: breedValue.isEmpty ? null : breedValue,
-      sex: sexForDb,
-      neutered: _isNeutered,
-      birthDate: _birthDate,
-      weightKg: _weightController.text.isEmpty ? null : double.tryParse(_weightController.text),
-      note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
-      updatedAt: DateTime.now(),
-    );
-    
-    try {
-      await ref.read(petsProvider.notifier).updatePet(updatedPet);
-      
-      // Update weight in health tab's basic info if weight was changed
-      if (updatedPet.weightKg != null && updatedPet.weightKg != widget.pet.weightKg) {
-        try {
-          final uid = Supabase.instance.client.auth.currentUser?.id;
-          if (uid != null) {
-            final today = DateTime.now();
-            final dateKey = '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-            
-            // Get current lab data for today
-            final currentRes = await Supabase.instance.client
-                .from('labs')
-                .select('items')
-                .eq('user_id', uid)
-                .eq('pet_id', widget.pet.id)
-                .eq('date', dateKey)
-                .eq('panel', 'BloodTest')
-                .maybeSingle();
-
-            Map<String, dynamic> currentItems = {};
-            if (currentRes != null) {
-              currentItems = Map<String, dynamic>.from(currentRes['items'] ?? {});
-            }
-
-            // Update weight in lab data
-            currentItems['체중'] = {
-              'value': updatedPet.weightKg.toString(),
-              'unit': 'kg',
-              'reference': '',
-            };
-
-            // Save to Supabase
-            await Supabase.instance.client
-                .from('labs')
-                .upsert({
-                  'user_id': uid,
-                  'pet_id': widget.pet.id,
-                  'date': dateKey,
-                  'panel': 'BloodTest',
-                  'items': currentItems,
-                });
-          }
-        } catch (e) {
-          print('⚠️ Failed to update weight in health tab: $e');
-        }
-      }
-      
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('pets.edit_success'.tr(args: [updatedPet.name])),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('pets.edit_error'.tr(args: [widget.pet.name])),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
-    }
-  }
-}
-
-class _EditSuppliesSheet extends ConsumerStatefulWidget {
-  const _EditSuppliesSheet({
-    required this.pet,
-    required this.selectedDate,
-    this.existingSupplies,
-    required this.onSaved,
-    this.initialFocusField,
-  });
-
-  final Pet pet;
-  final DateTime selectedDate;
-  final PetSupplies? existingSupplies;
-  final Function(PetSupplies, List<DateTime>) onSaved;
-  final String? initialFocusField;
-
-  @override
-  ConsumerState<_EditSuppliesSheet> createState() => _EditSuppliesSheetState();
-}
-
-class _EditSuppliesSheetState extends ConsumerState<_EditSuppliesSheet> {
-  final _formKey = GlobalKey<FormState>();
-  final _dryFoodController = TextEditingController();
-  final _wetFoodController = TextEditingController();
-  final _supplementController = TextEditingController();
-  final _snackController = TextEditingController();
-  final _litterController = TextEditingController();
-  late final Map<String, FocusNode> _focusNodes;
-  late PetSuppliesRepository _suppliesRepository;
-  ScrollController? _currentScrollController;
-  final Set<String> _listenersAdded = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _focusNodes = {
-      'dryFood': FocusNode(),
-      'wetFood': FocusNode(),
-      'supplement': FocusNode(),
-      'snack': FocusNode(),
-      'litter': FocusNode(),
-    };
-    _suppliesRepository = PetSuppliesRepository(
-      Supabase.instance.client,
-    );
-    _initializeForm();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final target = widget.initialFocusField;
-      if (target != null) {
-        _focusNodes[target]?.requestFocus();
-      }
-    });
-  }
-
-  // 포커스 변경 시 자동 스크롤을 위한 메서드
-  void _setupAutoScroll(ScrollController scrollController, String fieldKey, BuildContext context) {
-    // 리스너가 이미 추가되었는지 확인
-    if (_listenersAdded.contains(fieldKey)) {
-      return;
-    }
-    
-    _listenersAdded.add(fieldKey);
-    _currentScrollController = scrollController;
-    
-    _focusNodes[fieldKey]?.addListener(() {
-      if (_focusNodes[fieldKey]!.hasFocus && _currentScrollController != null) {
-        // 키보드가 올라올 시간을 주기 위해 약간의 지연
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (_currentScrollController!.hasClients && mounted) {
-            final focusContext = _focusNodes[fieldKey]?.context;
-            if (focusContext != null) {
-              Scrollable.ensureVisible(
-                focusContext,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                alignment: 0.1, // 상단에서 10% 위치에 배치
-              );
-            }
-          }
-        });
-      }
-    });
-  }
-
-  void _initializeForm() {
-    final existingSupplies = widget.existingSupplies;
-    
-    if (existingSupplies != null) {
-      // 기존 기록이 있는 경우 데이터 사용
-      _dryFoodController.text = existingSupplies.dryFood ?? '';
-      _wetFoodController.text = existingSupplies.wetFood ?? '';
-      _supplementController.text = existingSupplies.supplement ?? '';
-      _snackController.text = existingSupplies.snack ?? '';
-      _litterController.text = existingSupplies.litter ?? '';
-    } else {
-      // 새로운 기록인 경우 빈 값으로 초기화
-      _dryFoodController.text = '';
-      _wetFoodController.text = '';
-      _supplementController.text = '';
-      _snackController.text = '';
-      _litterController.text = '';
-    }
-  }
-
-  @override
-  void dispose() {
-    _dryFoodController.dispose();
-    _wetFoodController.dispose();
-    _supplementController.dispose();
-    _snackController.dispose();
-    _litterController.dispose();
-    for (final node in _focusNodes.values) {
-      node.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: DraggableScrollableSheet(
-        initialChildSize: 0.95,
-        maxChildSize: 0.95,
-        minChildSize: 0.5,
-        expand: false,
-        builder: (context, scrollController) {
-          return SafeArea(
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  // Handle
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.outline,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Title
-                  Text(
-                    'supplies.daily_record'.tr(),
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  // 선택된 날짜 표시
-                  Text(
-                    DateFormat('yyyy년 MM월 dd일').format(widget.selectedDate),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Form fields
-                  Builder(
-                    builder: (builderContext) {
-                      // 포커스 리스너 설정 (한 번만 실행)
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _setupAutoScroll(scrollController, 'dryFood', builderContext);
-                        _setupAutoScroll(scrollController, 'wetFood', builderContext);
-                        _setupAutoScroll(scrollController, 'supplement', builderContext);
-                        _setupAutoScroll(scrollController, 'snack', builderContext);
-                        _setupAutoScroll(scrollController, 'litter', builderContext);
-                      });
-                      
-                      return Flexible(
-                        child: ListView(
-                          controller: scrollController,
-                          shrinkWrap: true,
-                          physics: const ClampingScrollPhysics(),
-                          padding: const EdgeInsets.only(top: 8, bottom: 16),
-                          children: [
-                            AppTextField(
-                              controller: _dryFoodController,
-                              labelText: 'supplies.dry_food'.tr(),
-                              prefixIcon: const Icon(Icons.restaurant),
-                              hintText: 'supplies.dry_food_hint'.tr(),
-                              focusNode: _focusNodes['dryFood'],
-                            ),
-                            const SizedBox(height: 16),
-
-                            AppTextField(
-                              controller: _wetFoodController,
-                              labelText: 'supplies.wet_food'.tr(),
-                              prefixIcon: const Icon(Icons.rice_bowl),
-                              hintText: 'supplies.wet_food_hint'.tr(),
-                              focusNode: _focusNodes['wetFood'],
-                            ),
-                            const SizedBox(height: 16),
-                            
-                            AppTextField(
-                              controller: _supplementController,
-                              labelText: 'supplies.supplement'.tr(),
-                              prefixIcon: const Icon(Icons.medication),
-                              hintText: 'supplies.supplement_hint'.tr(),
-                              focusNode: _focusNodes['supplement'],
-                            ),
-                            const SizedBox(height: 16),
-                            
-                            AppTextField(
-                              controller: _snackController,
-                              labelText: 'supplies.snack'.tr(),
-                              prefixIcon: const Icon(Icons.cookie),
-                              hintText: 'supplies.snack_hint'.tr(),
-                              focusNode: _focusNodes['snack'],
-                            ),
-                            const SizedBox(height: 16),
-                            
-                            AppTextField(
-                              controller: _litterController,
-                              labelText: 'supplies.litter'.tr(),
-                              prefixIcon: const Icon(Icons.cleaning_services),
-                              hintText: 'supplies.litter_hint'.tr(),
-                              focusNode: _focusNodes['litter'],
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                  
-                  // Buttons
-                  const SizedBox(height: 40),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('취소'),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: _updateSupplies,
-                          child: const Text('저장'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 40),
-                ],
-              ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Future<void> _updateSupplies() async {
-    if (!_formKey.currentState!.validate()) return;
-    
-    try {
-      final now = DateTime.now();
-      final supplies = PetSupplies(
-        id: widget.existingSupplies?.id ?? const Uuid().v4(),
-        petId: widget.pet.id,
-        dryFood: _dryFoodController.text.trim().isEmpty ? null : _dryFoodController.text.trim(),
-        wetFood: _wetFoodController.text.trim().isEmpty ? null : _wetFoodController.text.trim(),
-        supplement: _supplementController.text.trim().isEmpty ? null : _supplementController.text.trim(),
-        snack: _snackController.text.trim().isEmpty ? null : _snackController.text.trim(),
-        litter: _litterController.text.trim().isEmpty ? null : _litterController.text.trim(),
-        recordedAt: widget.selectedDate,
-        createdAt: widget.existingSupplies?.createdAt ?? now,
-        updatedAt: now,
-    );
-    
-      print('🔄 저장 시작: ${supplies.dryFood}, ${supplies.wetFood}, ${supplies.supplement}, ${supplies.snack}, ${supplies.litter}');
-      final savedSupplies = await _suppliesRepository.saveSupplies(supplies);
-      print('✅ 저장 완료: ${savedSupplies?.dryFood}, ${savedSupplies?.wetFood}, ${savedSupplies?.supplement}');
-      
-      if (!mounted) {
-        print('❌ Widget disposed');
-        return;
-      }
-      
-      // 날짜 목록 로드
-      final dates = await _suppliesRepository.getSuppliesRecordDates(widget.pet.id);
-      print('📅 날짜 목록 로드: ${dates.length}개');
-      
-      // 콜백을 통해 부모에게 알림
-      if (savedSupplies != null) {
-        print('📝 콜백 호출: ${savedSupplies.dryFood}');
-        widget.onSaved(savedSupplies, dates);
-      }
-      
-      // 다이얼로그 닫기
-      if (mounted) {
-        Navigator.of(context).pop();
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('물품 기록이 저장되었습니다'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('물품 기록 저장에 실패했습니다'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
-    }
-  }
-}
-

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:petcare/data/services/image_service.dart';
 import 'package:petcare/utils/app_constants.dart';
+import 'package:petcare/utils/app_logger.dart';
 
 class ProfileImagePicker extends StatefulWidget {
   final String? imagePath;
@@ -56,11 +57,11 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
 
   Future<void> _loadDefaultIcons() async {
     if (widget.species == null) {
-      print('⚠️ species가 null입니다.');
+      AppLogger.w('ProfilePicker', 'species가 null입니다.');
       return;
     }
     
-    print('🔄 기본 아이콘 로드 시작: species=${widget.species}');
+    AppLogger.d('ProfilePicker', '기본 아이콘 로드 시작: species=${widget.species}');
     
     setState(() {
       _isLoadingIcons = true;
@@ -68,7 +69,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
 
     try {
       final urls = await ImageService.getDefaultIconUrls(widget.species!);
-      print('✅ 로드된 아이콘 URL 개수: ${urls.length}');
+      AppLogger.d('ProfilePicker', '로드된 아이콘 URL 개수: ${urls.length}');
       setState(() {
         _defaultIconUrls = urls;
         _isLoadingIcons = false;
@@ -77,7 +78,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
       setState(() {
         _isLoadingIcons = false;
       });
-      print('❌ 기본 아이콘 로드 실패: $e');
+      AppLogger.e('ProfilePicker', '기본 아이콘 로드 실패', e);
     }
   }
 
@@ -174,7 +175,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
           height: widget.size,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
-            print('❌ Assets 이미지 로드 실패: $imageUrl, 에러: $error');
+            AppLogger.e('ProfilePicker', 'Assets 이미지 로드 실패: $imageUrl, 에러: $error');
             // Assets 이미지 로드 실패 시 기본 아이콘으로 폴백
             return _buildDefaultIcon(context);
           },
@@ -256,7 +257,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
             ),
             const SizedBox(height: 16),
             Text(
-              '프로필 사진 선택',
+              'pets.select_profile_image'.tr(),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 24),
@@ -266,7 +267,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                 _buildSourceOption(
                   context,
                   icon: Icons.photo_library,
-                  label: '갤러리',
+                  label: 'pets.gallery'.tr(),
                   onTap: () async {
                     Navigator.pop(context);
                     await _pickImage(context, ImageSource.gallery);
@@ -275,7 +276,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                 _buildSourceOption(
                   context,
                   icon: Icons.camera_alt,
-                  label: '카메라',
+                  label: 'pets.camera'.tr(),
                   onTap: () async {
                     Navigator.pop(context);
                     await _pickImage(context, ImageSource.camera);
@@ -284,7 +285,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                 _buildSourceOption(
                   context,
                   icon: Icons.pets,
-                  label: '기본 아이콘',
+                  label: 'pets.default_icon'.tr(),
                   onTap: () async {
                     Navigator.pop(context);
                     _showDefaultIconsDialog(context);
@@ -293,7 +294,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                 _buildSourceOption(
                   context,
                   icon: Icons.delete,
-                  label: '삭제',
+                  label: 'common.delete'.tr(),
                   onTap: () async {
                     Navigator.pop(context);
                     if (widget.onClearSelection != null) {
@@ -364,14 +365,14 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
           if (savedPath != null) {
             widget.onImageSelected(File(savedPath));
           } else {
-            _showErrorSnackBar(context, '이미지 저장에 실패했습니다.');
+            _showErrorSnackBar(context, 'pets.image_save_failed'.tr());
           }
         } else {
-          _showErrorSnackBar(context, '이미지 압축에 실패했습니다.');
+          _showErrorSnackBar(context, 'pets.image_compress_failed'.tr());
         }
       }
     } catch (e) {
-      _showErrorSnackBar(context, '이미지 선택 중 오류가 발생했습니다.');
+      _showErrorSnackBar(context, 'pets.image_select_error'.tr());
     }
   }
 
@@ -456,8 +457,8 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
 
   // 기본 아이콘 선택 다이얼로그
   void _showDefaultIconsDialog(BuildContext context) {
-    print('🎯 기본 아이콘 다이얼로그 열기 시작');
-    print('📊 Species: ${widget.species}, Loading: $_isLoadingIcons, Icons: ${_defaultIconUrls.length}');
+    AppLogger.d('ProfilePicker', '기본 아이콘 다이얼로그 열기 시작');
+    AppLogger.d('ProfilePicker', 'Species: ${widget.species}, Loading: $_isLoadingIcons, Icons: ${_defaultIconUrls.length}');
     
     showModalBottomSheet(
       context: context,
@@ -491,7 +492,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                   child: _isLoadingIcons
                       ? const Center(child: CircularProgressIndicator())
                       : _defaultIconUrls.isEmpty
-                          ? const Center(child: Text('아이콘을 찾을 수 없습니다.'))
+                          ? Center(child: Text('pets.no_icons_found'.tr()))
                           : GridView.builder(
                               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 5,
@@ -580,7 +581,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '배경색 선택',
+                    'pets.select_bg_color'.tr(),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -683,7 +684,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                                 widget.onDefaultIconSelected!(selectedIcon, previewBgColor!);
                               }
                             },
-                      child: const Text('선택 완료'),
+                      child: Text('common.confirm_selection'.tr()),
                     ),
                   ),
                   const SizedBox(height: 8),

@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:petcare/utils/app_logger.dart';
 
 class ImageService {
   static final ImagePicker _picker = ImagePicker();
@@ -25,7 +26,7 @@ class ImageService {
       }
       return null;
     } catch (e) {
-      print('❌ 갤러리에서 이미지 선택 실패: $e');
+      AppLogger.e('ImageService', '갤러리에서 이미지 선택 실패', e);
       return null;
     }
   }
@@ -45,7 +46,7 @@ class ImageService {
       }
       return null;
     } catch (e) {
-      print('❌ 카메라로 이미지 촬영 실패: $e');
+      AppLogger.e('ImageService', '카메라로 이미지 촬영 실패', e);
       return null;
     }
   }
@@ -69,7 +70,7 @@ class ImageService {
 
       return compressedFile != null ? File(compressedFile.path) : null;
     } catch (e) {
-      print('❌ 이미지 압축 실패: $e');
+      AppLogger.e('ImageService', '이미지 압축 실패', e);
       return null;
     }
   }
@@ -91,10 +92,10 @@ class ImageService {
       // 이미지 복사
       await imageFile.copy(savedImage.path);
       
-      print('✅ 이미지 저장 완료: ${savedImage.path}');
+      AppLogger.d('ImageService', '이미지 저장 완료: ${savedImage.path}');
       return savedImage.path;
     } catch (e) {
-      print('❌ 이미지 저장 실패: $e');
+      AppLogger.e('ImageService', '이미지 저장 실패', e);
       return null;
     }
   }
@@ -107,12 +108,12 @@ class ImageService {
       final file = File(imagePath);
       if (await file.exists()) {
         await file.delete();
-        print('✅ 이미지 삭제 완료: $imagePath');
+        AppLogger.d('ImageService', '이미지 삭제 완료: $imagePath');
         return true;
       }
       return true;
     } catch (e) {
-      print('❌ 이미지 삭제 실패: $e');
+      AppLogger.e('ImageService', '이미지 삭제 실패', e);
       return false;
     }
   }
@@ -124,18 +125,11 @@ class ImageService {
       final imagesDir = Directory(path.join(directory.path, 'pet_images'));
       if (await imagesDir.exists()) {
         await imagesDir.delete(recursive: true);
-        print('🗑️ 로컬 사용자 이미지 디렉토리 삭제 완료: ${imagesDir.path}');
+        AppLogger.d('ImageService', '로컬 사용자 이미지 디렉토리 삭제 완료: ${imagesDir.path}');
       }
     } catch (e) {
-      print('❌ 로컬 사용자 이미지 일괄 삭제 실패: $e');
+      AppLogger.e('ImageService', '로컬 사용자 이미지 일괄 삭제 실패', e);
     }
-  }
-
-  /// 이미지 선택 옵션 표시 (갤러리/카메라)
-  static Future<File?> showImageSourceDialog() async {
-    // 이 메서드는 UI에서 호출되어야 하므로 여기서는 null을 반환
-    // 실제 구현은 UI 컴포넌트에서 처리
-    return null;
   }
 
   /// Assets에서 기본 아이콘 이미지 목록 가져오기 (동적으로 로드)
@@ -145,7 +139,7 @@ class ImageService {
           ? 'others' 
           : '${species.toLowerCase()}s';
       
-      print('🔍 Assets 폴더 경로 확인: $speciesFolder');
+      AppLogger.d('ImageService', 'Assets 폴더 경로 확인: $speciesFolder');
       
       // AssetManifest를 사용하여 동적으로 assets 파일 목록 가져오기
       final manifestContent = await rootBundle.loadString('AssetManifest.json');
@@ -158,12 +152,12 @@ class ImageService {
           .toList()
         ..sort(); // 파일명으로 정렬
       
-      print('🔧 Assets 파일 목록: ${assetPaths.length}개');
-      print('🔗 생성된 Assets 경로들: $assetPaths');
+      AppLogger.d('ImageService', 'Assets 파일 목록: ${assetPaths.length}개');
+      AppLogger.d('ImageService', '생성된 Assets 경로들: $assetPaths');
       
       return assetPaths;
     } catch (e) {
-      print('❌ Assets 기본 아이콘 목록 가져오기 실패: $e');
+      AppLogger.e('ImageService', 'Assets 기본 아이콘 목록 가져오기 실패', e);
       return [];
     }
   }
@@ -181,11 +175,11 @@ class ImageService {
       
       final assetPath = 'assets/images/profile_icons/${species.toLowerCase()}s/$fileName';
       
-      print('🔗 Assets 아이콘 경로 생성: species=$species, iconName=$iconName, fileName=$fileName, path=$assetPath');
+      AppLogger.d('ImageService', 'Assets 아이콘 경로 생성: species=$species, iconName=$iconName, fileName=$fileName, path=$assetPath');
       
       return assetPath;
     } catch (e) {
-      print('❌ Assets 기본 아이콘 경로 가져오기 실패: $e');
+      AppLogger.e('ImageService', 'Assets 기본 아이콘 경로 가져오기 실패', e);
       return '';
     }
   }

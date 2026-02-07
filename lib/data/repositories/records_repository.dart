@@ -2,16 +2,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:petcare/data/models/record.dart';
 import 'package:petcare/data/local/database.dart';
+import 'package:petcare/data/repositories/base_repository.dart';
+import 'package:petcare/utils/app_logger.dart';
 
 /// Repository for record data management
-class RecordsRepository {
+class RecordsRepository extends BaseRepository {
   RecordsRepository({
-    required this.supabase,
-    required this.localDb,
+    required super.supabase,
+    required super.localDb,
   });
 
-  final SupabaseClient supabase;
-  final LocalDatabase localDb;
+  @override
+  String get tag => 'RecordsRepo';
 
   Map<String, dynamic> _toSupabaseRow(Record record) {
     return {
@@ -72,7 +74,7 @@ class RecordsRepository {
 
       return records.where((record) => record.petId == petId).toList();
     } catch (e) {
-      print('Failed to fetch records from Supabase: $e');
+      AppLogger.e('RecordsRepo', 'Failed to fetch records from Supabase', e);
       // Fallback to local database
       return await localDb.getRecordsForPet(petId);
     }
@@ -106,7 +108,7 @@ class RecordsRepository {
         return records;
       }
     } catch (e) {
-      print('Failed to fetch records from Supabase: $e');
+      AppLogger.e('RecordsRepo', 'Failed to fetch records from Supabase', e);
     }
 
     // Fallback to local database (사용자 기준 필터링)
@@ -142,7 +144,7 @@ class RecordsRepository {
             .toList();
       }
     } catch (e) {
-      print('Failed to fetch today\'s records from Supabase: $e');
+      AppLogger.e('RecordsRepo', 'Failed to fetch today\'s records from Supabase', e);
     }
 
     // Fallback to filtering local records
@@ -154,83 +156,68 @@ class RecordsRepository {
 
   /// Create a new record
   Future<Record> createRecord(Record record) async {
-    try {
-      // If petId is not a UUID (likely local only), save locally only
-      if (!_isValidUUID(record.petId)) {
-        print('⚠️ PetId is not a UUID, saving locally only: ${record.petId}');
-        await localDb.saveRecord(record);
-        return record;
-      }
-      
-      final insertRow = _toSupabaseRow(record);
-      final response = await supabase
-          .from('records')
-          .insert(insertRow)
-          .select()
-          .single();
-
-      final savedRecord = _fromSupabaseRow(response as Map<String, dynamic>);
-      
-      // Cache locally
-      await localDb.saveRecord(savedRecord);
-      
-      return savedRecord;
-    } catch (e) {
-      print('Failed to create record in Supabase: $e');
-      // Save locally anyway
+    // If petId is not a UUID (likely local only), save locally only
+    if (!_isValidUUID(record.petId)) {
+      AppLogger.w(tag, 'PetId is not a UUID, saving locally only: ${record.petId}');
       await localDb.saveRecord(record);
       return record;
     }
+
+    return saveWithCloudFallback<Record>(
+      operationName: 'createRecord',
+      cloudAction: () async {
+        final insertRow = _toSupabaseRow(record);
+        final response = await supabase
+            .from('records')
+            .insert(insertRow)
+            .select()
+            .single();
+
+        final savedRecord = _fromSupabaseRow(response as Map<String, dynamic>);
+        await localDb.saveRecord(savedRecord);
+        return savedRecord;
+      },
+      localSave: () => localDb.saveRecord(record),
+      fallbackValue: record,
+    );
   }
 
   /// Update an existing record
   Future<Record> updateRecord(Record record) async {
-    try {
-      // If petId is not a UUID (likely local only), save locally only
-      if (!_isValidUUID(record.petId)) {
-        print('⚠️ PetId is not a UUID, updating locally only: ${record.petId}');
-        await localDb.saveRecord(record);
-        return record;
-      }
-      
-      final updateRow = _toSupabaseRow(record);
-      final response = await supabase
-          .from('records')
-          .update(updateRow)
-          .eq('id', record.id)
-          .select()
-          .single();
-
-      final updatedRecord = _fromSupabaseRow(response as Map<String, dynamic>);
-      
-      // Update locally
-      await localDb.saveRecord(updatedRecord);
-      
-      return updatedRecord;
-    } catch (e) {
-      print('Failed to update record in Supabase: $e');
-      // Update locally anyway
+    // If petId is not a UUID (likely local only), save locally only
+    if (!_isValidUUID(record.petId)) {
+      AppLogger.w(tag, 'PetId is not a UUID, updating locally only: ${record.petId}');
       await localDb.saveRecord(record);
       return record;
     }
+
+    return saveWithCloudFallback<Record>(
+      operationName: 'updateRecord',
+      cloudAction: () async {
+        final updateRow = _toSupabaseRow(record);
+        final response = await supabase
+            .from('records')
+            .update(updateRow)
+            .eq('id', record.id)
+            .select()
+            .single();
+
+        final updatedRecord = _fromSupabaseRow(response as Map<String, dynamic>);
+        await localDb.saveRecord(updatedRecord);
+        return updatedRecord;
+      },
+      localSave: () => localDb.saveRecord(record),
+      fallbackValue: record,
+    );
   }
 
   /// Delete a record
   Future<void> deleteRecord(String id) async {
-    try {
-      // Delete from Supabase
-      await supabase
-          .from('records')
-          .delete()
-          .eq('id', id);
-
-      // Delete locally
-      await localDb.deleteRecord(id);
-    } catch (e) {
-      print('Failed to delete record from Supabase: $e');
-      // Delete locally anyway
-      await localDb.deleteRecord(id);
-    }
+    return deleteWithCloudFallback(
+      operationName: 'deleteRecord',
+      cloudAction: () => supabase.from('records').delete().eq('id', id),
+      localDelete: () => localDb.deleteRecord(id),
+    );
   }
 
   /// Get records by type
@@ -253,7 +240,7 @@ class RecordsRepository {
             .toList();
       }
     } catch (e) {
-      print('Failed to fetch records by type from Supabase: $e');
+      AppLogger.e('RecordsRepo', 'Failed to fetch records by type from Supabase', e);
     }
 
     // Fallback to filtering local records
@@ -268,9 +255,9 @@ class RecordsRepository {
       if (user == null) return;
 
       // TODO: Implement conflict resolution and sync logic
-      print('Syncing records to cloud...');
+      AppLogger.d('RecordsRepo', 'Syncing records to cloud...');
     } catch (e) {
-      print('Failed to sync records to cloud: $e');
+      AppLogger.e('RecordsRepo', 'Failed to sync records to cloud', e);
     }
   }
 }

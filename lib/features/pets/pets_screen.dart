@@ -16,6 +16,7 @@ import 'package:petcare/ui/theme/app_colors.dart';
 import 'package:petcare/data/local/database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:petcare/utils/app_constants.dart';
+import 'package:petcare/utils/app_logger.dart';
 
 class PetsScreen extends ConsumerStatefulWidget {
   const PetsScreen({super.key});
@@ -716,7 +717,7 @@ class _EditPetSheetState extends ConsumerState<_EditPetSheet> {
       try {
         _selectedImage = File(pet.avatarUrl!);
       } catch (e) {
-        print('❌ 기존 이미지 로드 실패: $e');
+        AppLogger.e('PetsScreen', '기존 이미지 로드 실패', e);
       }
     }
   }

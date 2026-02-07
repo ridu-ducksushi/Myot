@@ -16,6 +16,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import 'package:petcare/features/records/records_chart_screen.dart';
+import 'package:petcare/utils/record_utils.dart';
+import 'package:petcare/features/records/widgets/time_24_table.dart';
+import 'package:petcare/features/records/widgets/record_card.dart';
 
 class _RecordCategoryAction {
   const _RecordCategoryAction({required this.icon, required this.type});
@@ -54,99 +57,6 @@ const Map<String, List<_RecordCategoryAction>> _recordCategoryActions = {
     _RecordCategoryAction(icon: Icons.more_horiz, type: 'poop_other'),
   ],
 };
-
-// 전역 헬퍼 함수들
-IconData getIconForType(String type) {
-  switch (type) {
-    case 'food_meal':
-      return Icons.dinner_dining;
-    case 'food_snack':
-      return Icons.cookie;
-    case 'food_water':
-      return Icons.water_drop;
-    case 'food_med':
-      return Icons.medical_services;
-    case 'food_supplement':
-      return Icons.medication;
-    case 'health_supplement':
-      return Icons.medication;
-    case 'health_vaccine':
-      return Icons.vaccines;
-    case 'health_visit':
-      return Icons.local_hospital;
-    case 'health_weight':
-      return Icons.more_horiz;
-    case 'activity_play':
-      return Icons.gamepad_outlined;
-    case 'activity_explore':
-      return Icons.explore_outlined;
-    case 'activity_outing':
-      return Icons.directions_walk;
-    case 'activity_rest':
-      return Icons.hotel_outlined;
-    case 'activity_other':
-      return Icons.more_horiz;
-    case 'poop_urine':
-      return Icons.opacity;
-    case 'poop_feces':
-      return Icons.pets;
-    case 'hygiene_brush':
-      return Icons.brush;
-    case 'poop_other':
-      return Icons.more_horiz;
-    default:
-      return Icons.add_circle_outline;
-  }
-}
-
-String getLabelForType(BuildContext context, String type) {
-  final key = 'records.items.$type';
-  final translated = tr(key, context: context);
-  if (translated != key) {
-    return translated;
-  }
-  final category = _categoryForRecordType(type);
-  final fallbackKey = 'records.type.${_translationCategoryKey(category)}';
-  final fallback = tr(fallbackKey, context: context);
-  return fallback != fallbackKey ? fallback : type;
-}
-
-String _categoryForRecordType(String type) {
-  switch (type.toLowerCase()) {
-    case 'food_meal':
-    case 'food_snack':
-    case 'food_water':
-    case 'food_med':
-    case 'food_supplement':
-      return 'food';
-    case 'health_med':
-    case 'health_supplement':
-    case 'health_vaccine':
-    case 'health_visit':
-    case 'health_weight':
-      return 'health';
-    case 'poop_feces':
-    case 'poop_urine':
-    case 'poop_other':
-    case 'hygiene_brush':
-      return 'poop';
-    case 'activity_play':
-    case 'activity_explore':
-    case 'activity_outing':
-    case 'activity_rest':
-    case 'activity_other':
-      return 'activity';
-    default:
-      return 'food';
-  }
-}
-
-String _translationCategoryKey(String category) {
-  if (category == 'activity') {
-    return 'play';
-  }
-  return category;
-}
 
 class PetRecordsScreen extends ConsumerStatefulWidget {
   const PetRecordsScreen({super.key, required this.petId});
@@ -286,7 +196,7 @@ class _PetRecordsScreenState extends ConsumerState<PetRecordsScreen> {
           for (int i = 0; i < actions.length; i++) ...[
             _buildSubMenuItem(
               icon: actions[i].icon,
-              label: getLabelForType(context, actions[i].type),
+              label: RecordUtils.getLabelForType(context, actions[i].type),
               onTap: () => _addRecord(context, pet, actions[i].type),
               color: color,
             ),
@@ -369,7 +279,7 @@ class _PetRecordsScreenState extends ConsumerState<PetRecordsScreen> {
       );
     }
 
-    Widget recordsView = _Time24Table(
+    Widget recordsView = Time24Table(
       records: records,
       onRecordTap: (record) => _showRecordEditDialog(context, record, pet),
     );
@@ -628,7 +538,7 @@ class _PetRecordsScreenState extends ConsumerState<PetRecordsScreen> {
               title: Row(
                 children: [
                   Icon(
-                    getIconForType(type),
+                    RecordUtils.getIconForType(type),
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(width: AppConstants.smallSpacing),
@@ -775,13 +685,13 @@ class _PetRecordsScreenState extends ConsumerState<PetRecordsScreen> {
                         child: Row(
                           children: [
                             Icon(
-                              getIconForType(record.type),
+                              RecordUtils.getIconForType(record.type),
                               size: 20,
                               color: Theme.of(context).colorScheme.primary,
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              getLabelForType(context, record.type),
+                              RecordUtils.getLabelForType(context, record.type),
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ],
@@ -988,7 +898,7 @@ class _PetRecordsScreenState extends ConsumerState<PetRecordsScreen> {
             width: double.maxFinite,
             child: Text(
               'records.dialog.delete_message'.tr(
-                args: [getLabelForType(context, record.type)],
+                args: [RecordUtils.getLabelForType(context, record.type)],
               ),
             ),
           ),
@@ -1019,303 +929,5 @@ class _PetRecordsScreenState extends ConsumerState<PetRecordsScreen> {
         );
       },
     );
-  }
-}
-
-class _Time24Table extends StatelessWidget {
-  const _Time24Table({required this.records, required this.onRecordTap});
-
-  final List<Record> records;
-  final Function(Record) onRecordTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color outline = Theme.of(context).colorScheme.outlineVariant;
-    final Color surface = Theme.of(context).colorScheme.surface;
-    final Color onSurfaceVariant = Theme.of(
-      context,
-    ).colorScheme.onSurfaceVariant;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: outline),
-      ),
-      child: Column(
-        children: List.generate(24, (i) {
-          final recordsForHour = records.where((r) => r.at.hour == i).toList();
-          final String label = _labelForRow(i);
-          final BorderSide bottomLine = i == 23
-              ? BorderSide.none
-              : BorderSide(color: outline);
-          return SizedBox(
-            height: 32, // 행 높이를 32로 변경
-            child: Row(
-              children: [
-                // Left time label cell
-                Container(
-                  width: 45, // 시간 라벨 영역의 고정 너비를 45px로 줄임
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primaryContainer.withOpacity(0.3),
-                    border: Border(
-                      right: BorderSide(color: outline),
-                      bottom: bottomLine,
-                    ),
-                  ),
-                  child: Text(
-                    label,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: onSurfaceVariant,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                // Right content cell
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border(bottom: bottomLine),
-                    ),
-                    child: recordsForHour.isEmpty
-                        ? null
-                        : Row(
-                            children: recordsForHour.map((record) {
-                              return _buildRecordButton(
-                                context,
-                                record,
-                                recordsForHour.length,
-                              );
-                            }).toList(),
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildRecordButton(
-    BuildContext context,
-    Record record,
-    int totalRecords,
-  ) {
-    final typeColor = AppColors.getRecordTypeColor(record.type);
-
-    // 총 기록 개수에 따라 버튼 크기 조정 (1개면 전체 너비, 2개면 각각 50%, 3개면 각각 33% 등)
-    final double flexValue = 1.0 / totalRecords;
-
-    return Expanded(
-      flex: (flexValue * 100).round(), // flex는 정수여야 하므로 100을 곱해서 반올림
-      child: Padding(
-        padding: const EdgeInsets.all(2.0),
-        child: InkWell(
-          onTap: () => onRecordTap(record),
-          borderRadius: BorderRadius.circular(6),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 6,
-              vertical: 2,
-            ), // 타임라인 행 높이 32px에 맞춰 패딩 조정
-            decoration: BoxDecoration(
-              color: typeColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: typeColor.withOpacity(0.3), width: 1),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(_getRecordIcon(record.type), size: 18, color: typeColor),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    '${getLabelForType(context, record.type)}${record.content != null && record.content!.isNotEmpty ? ': ${record.content}' : ''}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: typeColor,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  IconData _getRecordIcon(String type) {
-    switch (type.toLowerCase()) {
-      case 'food_meal':
-        return Icons.restaurant;
-      case 'food_snack':
-        return Icons.cookie;
-      case 'food_water':
-        return Icons.water_drop;
-      case 'health_med':
-      case 'food_med':
-        return Icons.medical_services;
-      case 'health_supplement':
-      case 'food_supplement':
-        return Icons.medication;
-      case 'activity_play':
-        return Icons.sports_tennis;
-      case 'activity_explore':
-        return Icons.explore_outlined;
-      case 'activity_outing':
-        return Icons.directions_walk;
-      case 'activity_rest':
-        return Icons.hotel_outlined;
-      case 'activity_other':
-        return Icons.more_horiz;
-      case 'poop_urine':
-        return Icons.opacity;
-      case 'poop_feces':
-        return Icons.pets;
-      case 'poop_other':
-        return Icons.more_horiz;
-      case 'health':
-        return Icons.favorite;
-      default:
-        return Icons.note;
-    }
-  }
-
-  String _labelForRow(int index) {
-    if (index == 0) return '12';
-    if (index == 23) return '23';
-    final int hour = index;
-    return hour.toString();
-  }
-}
-
-class _RecordCard extends StatelessWidget {
-  const _RecordCard({required this.record, required this.pet});
-
-  final Record record;
-  final Pet pet;
-
-  @override
-  Widget build(BuildContext context) {
-    final typeColor = AppColors.getRecordTypeColor(record.type);
-    final content = record.content;
-
-    return AppCard(
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.defaultPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(AppConstants.smallSpacing),
-                  decoration: BoxDecoration(
-                    color: typeColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    _getRecordIcon(record.type),
-                    color: typeColor,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: AppConstants.mediumSpacing),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        getLabelForType(context, record.type),
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        DateFormat('MMM dd, yyyy - HH:mm').format(record.at),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppConstants.smallSpacing,
-                    vertical: AppConstants.xSmallSpacing,
-                  ),
-                  decoration: BoxDecoration(
-                    color: typeColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    record.type.toUpperCase(),
-                    style: TextStyle(
-                      color: typeColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (content != null && content.isNotEmpty) ...[
-              const SizedBox(height: AppConstants.mediumSpacing),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(AppConstants.mediumSpacing),
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surfaceVariant.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  content,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData _getRecordIcon(String type) {
-    switch (type.toLowerCase()) {
-      case 'meal':
-        return Icons.restaurant;
-      case 'snack':
-        return Icons.cookie;
-      case 'med':
-      case 'medicine':
-        return Icons.medical_services;
-      case 'vaccine':
-        return Icons.vaccines;
-      case 'visit':
-        return Icons.local_hospital;
-      case 'weight':
-        return Icons.monitor_weight;
-      case 'litter':
-        return Icons.cleaning_services;
-      case 'play':
-        return Icons.sports_tennis;
-      case 'groom':
-        return Icons.content_cut;
-      default:
-        return Icons.note;
-    }
   }
 }

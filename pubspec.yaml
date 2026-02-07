@@ -84,8 +84,13 @@ dependencies:
   # UUID
   uuid: ^4.0.0
   
+  # Environment Variables
+  flutter_dotenv: ^5.1.0
+
   # AdMob
   google_mobile_ads: ^5.1.0
+  share_plus: ^12.0.1
+  file_picker: ^10.3.10
 
 dev_dependencies:
   flutter_test:
@@ -116,6 +121,7 @@ flutter:
 
   # Assets
   assets:
+    - .env
     - assets/i18n/
     - assets/images/profile_icons/cats/
     - assets/images/profile_icons/dogs/
