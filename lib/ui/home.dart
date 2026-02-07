@@ -263,8 +263,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     color: Theme.of(context).colorScheme.surface,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 12,
                         offset: const Offset(0, -2),
                       ),
                     ],

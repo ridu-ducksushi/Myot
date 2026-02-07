@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:petcare/ui/theme/app_theme_palette.dart';
 
 class ThemeNotifier extends StateNotifier<ThemeMode> {
   ThemeNotifier() : super(ThemeMode.system) {
@@ -34,4 +35,27 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
 
 final themeModeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>(
   (ref) => ThemeNotifier(),
+);
+
+class ThemeColorNotifier extends StateNotifier<AppThemePalette> {
+  ThemeColorNotifier() : super(AppThemePalette.pink) {
+    _loadThemeColor();
+  }
+
+  Future<void> _loadThemeColor() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = prefs.getString('theme_color') ?? 'pink';
+    state = AppThemePalette.fromPersistenceKey(key);
+  }
+
+  Future<void> setThemeColor(AppThemePalette palette) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('theme_color', palette.persistenceKey);
+    state = palette;
+  }
+}
+
+final themeColorProvider =
+    StateNotifierProvider<ThemeColorNotifier, AppThemePalette>(
+  (ref) => ThemeColorNotifier(),
 );

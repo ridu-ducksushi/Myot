@@ -4,10 +4,6 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._(); // Private constructor to prevent instantiation
 
-  // Primary brand colors
-  static const Color primary = Color(0xFF6750A4);
-  static const Color primaryContainer = Color(0xFFEADDFF);
-  
   // Pet-specific colors
   static const Color dogColor = Color(0xFFFF8C00);      // Orange
   static const Color catColor = Color(0xFF2196F3);      // Blue
@@ -30,8 +26,8 @@ class AppColors {
   static const Color info = Color(0xFF2196F3);
 
   // Gradient colors for cards and backgrounds
-  static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF6750A4), Color(0xFF7C4DFF)],
+  static LinearGradient primaryGradient(Color primary) => LinearGradient(
+    colors: [primary, primary.withOpacity(0.7)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

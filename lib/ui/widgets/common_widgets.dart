@@ -37,7 +37,7 @@ class AppCard extends StatelessWidget {
             child: InkWell(
               onTap: onTap,
               onLongPress: onLongPress,
-              borderRadius: borderRadius ?? BorderRadius.circular(16),
+              borderRadius: borderRadius ?? BorderRadius.circular(20),
               child: cardContent,
             ),
           )
@@ -45,10 +45,10 @@ class AppCard extends StatelessWidget {
 
     return Card(
       margin: margin ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: elevation ?? 2,
+      elevation: elevation ?? 0.5,
       color: color,
       shape: RoundedRectangleBorder(
-        borderRadius: borderRadius ?? BorderRadius.circular(16),
+        borderRadius: borderRadius ?? BorderRadius.circular(20),
       ),
       child: cardChild,
     );

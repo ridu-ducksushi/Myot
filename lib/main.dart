@@ -58,6 +58,7 @@ class PetCareApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final themeColor = ref.watch(themeColorProvider);
 
     return MediaQuery(
       data: MediaQuery.of(context).copyWith(
@@ -65,8 +66,8 @@ class PetCareApp extends ConsumerWidget {
       ),
       child: MaterialApp.router(
         title: 'PetCare',
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
+        theme: AppTheme.lightTheme(themeColor.seedColor),
+        darkTheme: AppTheme.darkTheme(themeColor.seedColor),
         themeMode: themeMode,
         localizationsDelegates: context.localizationDelegates,
         supportedLocales: context.supportedLocales,

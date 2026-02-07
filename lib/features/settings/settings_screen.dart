@@ -17,6 +17,7 @@ import 'package:petcare/data/services/backup_service.dart';
 import 'package:petcare/features/pets/pets_screen.dart';
 import 'package:petcare/ui/widgets/common_widgets.dart';
 import 'package:petcare/ui/theme/app_colors.dart';
+import 'package:petcare/ui/theme/app_theme_palette.dart';
 import 'package:petcare/data/models/pet.dart';
 import 'package:petcare/ui/widgets/app_record_calendar.dart';
 import 'package:petcare/ui/widgets/add_pet_sheet.dart';
@@ -478,7 +479,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SectionHeader(title: 'contact.title'.tr()),
           AppCard(
             child: ListTile(
-              leading: const Icon(Icons.email, color: AppColors.primary),
+              leading: Icon(Icons.email, color: Theme.of(context).colorScheme.primary),
               title: Text('contact.email'.tr()),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () => _sendEmail(context),
@@ -491,7 +492,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SectionHeader(title: 'settings.app_settings'.tr()),
           AppCard(
             child: ListTile(
-              leading: const Icon(Icons.language, color: AppColors.primary),
+              leading: Icon(Icons.language, color: Theme.of(context).colorScheme.primary),
               title: Text('settings.language'.tr()),
               subtitle: Text(_getCurrentLanguageName(context)),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -501,11 +502,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 12),
           AppCard(
             child: ListTile(
-              leading: const Icon(Icons.palette, color: AppColors.primary),
+              leading: Icon(Icons.palette, color: Theme.of(context).colorScheme.primary),
               title: Text('settings.theme'.tr()),
               subtitle: Text(_getCurrentThemeModeName(context)),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () => _showThemeDialog(context),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+          AppCard(
+            child: ListTile(
+              leading: Icon(Icons.color_lens, color: Theme.of(context).colorScheme.primary),
+              title: Text('settings.theme_color'.tr()),
+              subtitle: Text(ref.watch(themeColorProvider).displayNameKey.tr()),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () => _showThemeColorPicker(context),
             ),
           ),
 
@@ -515,7 +527,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SectionHeader(title: 'settings.backup_restore'.tr()),
           AppCard(
             child: ListTile(
-              leading: const Icon(Icons.upload_file, color: AppColors.primary),
+              leading: Icon(Icons.upload_file, color: Theme.of(context).colorScheme.primary),
               title: Text('settings.export_data'.tr()),
               subtitle: Text('settings.export_data_description'.tr()),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -525,7 +537,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 12),
           AppCard(
             child: ListTile(
-              leading: const Icon(Icons.download, color: AppColors.primary),
+              leading: Icon(Icons.download, color: Theme.of(context).colorScheme.primary),
               title: Text('settings.import_data'.tr()),
               subtitle: Text('settings.import_data_description'.tr()),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -669,6 +681,67 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           );
         }).toList(),
       ),
+    );
+  }
+
+  Future<void> _showThemeColorPicker(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text('settings.theme_color'.tr()),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              alignment: WrapAlignment.center,
+              children: AppThemePalette.values.map((palette) {
+                final isSelected = ref.read(themeColorProvider) == palette;
+                return GestureDetector(
+                  onTap: () {
+                    ref.read(themeColorProvider.notifier).setThemeColor(palette);
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: palette.seedColor,
+                          shape: BoxShape.circle,
+                          border: isSelected
+                              ? Border.all(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  width: 3,
+                                )
+                              : Border.all(
+                                  color: Colors.grey.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                        ),
+                        child: isSelected
+                            ? const Icon(Icons.check, color: Colors.white, size: 28)
+                            : null,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        palette.displayNameKey.tr(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
     );
   }
 
