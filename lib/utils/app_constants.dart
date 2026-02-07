@@ -24,7 +24,7 @@ class AppConstants {
   static const double profileEditButtonSpacing = 230.0;
   static const double profileEditBottomSpacing = 40.0;
   static const double addPetButtonBottomOffset = 30.0;
-  static const double avatarSize = 60.0;
+  static const double avatarSize = 88.0;
   static const double iconSize = 30.0;
   static const double defaultPadding = 16.0;
   static const double mediumPadding = 24.0;
