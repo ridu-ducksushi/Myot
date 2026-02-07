@@ -96,6 +96,7 @@ class LabTableState extends State<LabTable> {
   Timer? _saveTimer;
   bool _isLoading = false;
   bool _isSaving = false;
+  bool _suppressOnChanged = false;
   // Previous (직전) values cache
   final Map<String, String> _previousValues = {};
   String? _previousDateStr;
@@ -166,8 +167,11 @@ class LabTableState extends State<LabTable> {
   @override
   void didUpdateWidget(LabTable oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Widget이 업데이트되면 데이터를 다시 로드
-    _loadFromSupabase();
+    // petId나 species가 변경된 경우에만 다시 로드
+    if (oldWidget.petId != widget.petId ||
+        oldWidget.species != widget.species) {
+      _loadFromSupabase();
+    }
   }
 
   @override
@@ -256,12 +260,13 @@ class LabTableState extends State<LabTable> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                if (_isSaving)
-                  const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: _isSaving
+                      ? const CircularProgressIndicator(strokeWidth: 2)
+                      : null,
+                ),
               ],
             ),
           ),
@@ -272,13 +277,11 @@ class LabTableState extends State<LabTable> {
                 // 직전 날짜로 이동
                 final parts = _previousDateStr!.split('-');
                 if (parts.length == 3) {
-                  setState(() {
-                    _selectedDate = DateTime(
-                      int.parse(parts[0]),
-                      int.parse(parts[1]),
-                      int.parse(parts[2]),
-                    );
-                  });
+                  _selectedDate = DateTime(
+                    int.parse(parts[0]),
+                    int.parse(parts[1]),
+                    int.parse(parts[2]),
+                  );
                   await _loadFromSupabase();
                 }
               },
@@ -345,9 +348,9 @@ class LabTableState extends State<LabTable> {
     // 사용자 정의 순서가 있으면 사용, 없으면 기본 순서
     final sortedKeys = _customOrder.isEmpty ? baseKeys : _customOrder;
 
-    return _isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : Column(
+    return Stack(
+      children: [
+        Column(
             children: [
               header,
               basicInfoSection,
@@ -615,7 +618,16 @@ class LabTableState extends State<LabTable> {
                 ),
               ),
             ],
-          );
+          ),
+        if (_isLoading)
+          Positioned.fill(
+            child: Container(
+              color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.5),
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+          ),
+      ],
+    );
   }
 
   void _onReorder(int oldIndex, int newIndex) {
@@ -960,7 +972,7 @@ class LabTableState extends State<LabTable> {
     );
 
     if (pickedDate != null && !isSameDay(pickedDate, _selectedDate)) {
-      setState(() => _selectedDate = pickedDate);
+      _selectedDate = pickedDate;
       await _loadFromSupabase();
     }
   }
@@ -969,6 +981,7 @@ class LabTableState extends State<LabTable> {
     if (_isLoading) return;
 
     setState(() => _isLoading = true);
+    _suppressOnChanged = true;
 
     try {
       final uid = Supabase.instance.client.auth.currentUser?.id;
@@ -980,6 +993,8 @@ class LabTableState extends State<LabTable> {
       if (uid == null) {
         AppLogger.e('PetHealth', 'User not authenticated → 로컬 캐시에서 로드');
         await _loadFromLocal();
+        _suppressOnChanged = false;
+        _saveTimer?.cancel();
         setState(() => _isLoading = false);
         return;
       }
@@ -1230,6 +1245,9 @@ class LabTableState extends State<LabTable> {
         context,
       ).showSnackBar(SnackBar(content: Text('labs.load_error'.tr(namedArgs: {'error': e.toString()}))));
     } finally {
+      _suppressOnChanged = false;
+      // 로드 중 발생한 보류 저장 타이머 취소
+      _saveTimer?.cancel();
       setState(() => _isLoading = false);
     }
   }
@@ -1412,6 +1430,7 @@ class LabTableState extends State<LabTable> {
   }
 
   void _onChanged() {
+    if (_suppressOnChanged) return;
     // Debounce auto-save: only save after 2 seconds of no typing
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 2), () {
