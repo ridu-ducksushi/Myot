@@ -207,10 +207,13 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
           children: [
             // Pet Header
             _buildPetHeader(context, pet),
-            
+
+            // Tools & Schedule Section
+            _buildToolsSection(context, pet),
+
             // Pet Supplies
             _buildPetSupplies(context, pet),
-            
+
             const SizedBox(height: 100), // Bottom padding for navigation bar
           ],
         ),
@@ -505,6 +508,136 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToolsSection(BuildContext context, Pet pet) {
+    final tools = [
+      _ToolItem(
+        icon: Icons.vaccines,
+        label: 'tools.vaccination'.tr(),
+        route: '/pets/${pet.id}/vaccination',
+      ),
+      _ToolItem(
+        icon: Icons.content_cut,
+        label: 'tools.grooming'.tr(),
+        route: '/pets/${pet.id}/grooming',
+      ),
+      _ToolItem(
+        icon: Icons.warning_amber,
+        label: 'tools.allergy'.tr(),
+        route: '/pets/${pet.id}/allergies',
+      ),
+      _ToolItem(
+        icon: Icons.calculate,
+        label: 'tools.food_calc'.tr(),
+        route: '/pets/${pet.id}/food-calculator',
+      ),
+      _ToolItem(
+        icon: Icons.phone,
+        label: 'tools.emergency'.tr(),
+        route: '/pets/${pet.id}/emergency-contacts',
+      ),
+      _ToolItem(
+        icon: Icons.description,
+        label: 'tools.report'.tr(),
+        route: '/pets/${pet.id}/report',
+      ),
+      _ToolItem(
+        icon: Icons.monitor_weight,
+        label: 'tools.weight_guide'.tr(),
+        route: '/pets/${pet.id}/weight-guide',
+      ),
+    ];
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+      child: AppCard(
+        borderRadius: BorderRadius.zero,
+        margin: EdgeInsets.zero,
+        elevation: 0,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceVariant,
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.build_outlined,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'tools.section_title'.tr(),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  childAspectRatio: 0.9,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                itemCount: tools.length,
+                itemBuilder: (context, index) {
+                  final tool = tools[index];
+                  return InkWell(
+                    onTap: () => context.go(tool.route),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            tool.icon,
+                            size: 22,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          tool.label,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -947,6 +1080,18 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
       ),
     );
   }
+}
+
+class _ToolItem {
+  const _ToolItem({
+    required this.icon,
+    required this.label,
+    required this.route,
+  });
+
+  final IconData icon;
+  final String label;
+  final String route;
 }
 
 class _InfoCard extends StatelessWidget {
