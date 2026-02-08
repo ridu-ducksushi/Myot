@@ -789,7 +789,13 @@
     "trend_unknown": "不明",
     "trend_unknown_desc": "体重記録が不足しているため傾向を判断できません。",
     "no_breed_data": "品種情報がないため適正体重を表示できません",
-    "set_breed": "品種を設定すると適正体重範囲を確認できます"
+    "set_breed": "品種を設定すると適正体重範囲を確認できます",
+    "add_weight": "体重記録を追加",
+    "edit_weight": "体重記録を編集",
+    "weight_field": "体重",
+    "date_field": "日付",
+    "tap_to_set_breed": "タップして品種を設定",
+    "delete_confirm": "この体重記録を削除しますか？"
   },
   "water_stats": {
     "title": "{} 飲水量統計",

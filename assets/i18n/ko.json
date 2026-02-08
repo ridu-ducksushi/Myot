@@ -789,7 +789,13 @@
     "trend_unknown": "알 수 없음",
     "trend_unknown_desc": "체중 기록이 부족하여 추세를 판단할 수 없습니다.",
     "no_breed_data": "품종 정보가 없어 적정 체중을 표시할 수 없습니다",
-    "set_breed": "품종을 설정하면 적정 체중 범위를 확인할 수 있습니다"
+    "set_breed": "품종을 설정하면 적정 체중 범위를 확인할 수 있습니다",
+    "add_weight": "체중 기록 추가",
+    "edit_weight": "체중 기록 수정",
+    "weight_field": "체중",
+    "date_field": "날짜",
+    "tap_to_set_breed": "탭하여 품종을 설정하세요",
+    "delete_confirm": "이 체중 기록을 삭제하시겠습니까?"
   },
   "water_stats": {
     "title": "{} 음수량 통계",

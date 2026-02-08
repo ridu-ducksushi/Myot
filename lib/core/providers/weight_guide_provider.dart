@@ -30,7 +30,7 @@ class WeightGuideData {
   final String? trend;
 
   /// Recent weight entries sorted by date ascending.
-  /// Each entry: {'date': DateTime, 'weight': double}.
+  /// Each entry: {'id': String, 'date': DateTime, 'weight': double, 'note': String?}.
   final List<Map<String, dynamic>> recentWeights;
 }
 
@@ -82,8 +82,10 @@ final weightGuideProvider = Provider.family<WeightGuideData, String>(
       }
       if (weight != null) {
         recentWeights.add({
+          'id': r.id,
           'date': r.at,
           'weight': weight,
+          'note': r.content,
         });
       }
     }

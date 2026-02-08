@@ -795,7 +795,13 @@
     "trend_unknown": "Unknown",
     "trend_unknown_desc": "Not enough weight records to determine trend.",
     "no_breed_data": "Cannot show ideal weight without breed information",
-    "set_breed": "Set breed to see ideal weight range"
+    "set_breed": "Set breed to see ideal weight range",
+    "add_weight": "Add Weight Record",
+    "edit_weight": "Edit Weight Record",
+    "weight_field": "Weight",
+    "date_field": "Date",
+    "tap_to_set_breed": "Tap to set breed",
+    "delete_confirm": "Are you sure you want to delete this weight record?"
   },
   "water_stats": {
     "title": "{} Water Intake Stats",
