@@ -209,7 +209,17 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
             _buildPetHeader(context, pet),
 
             // Tools & Schedule Section
-            _buildToolsSection(context, pet),
+            Builder(builder: (_) {
+              try {
+                return _buildToolsSection(context, pet);
+              } catch (e) {
+                return Container(
+                  color: Colors.red,
+                  padding: const EdgeInsets.all(16),
+                  child: Text('Tools error: $e', style: const TextStyle(color: Colors.white)),
+                );
+              }
+            }),
 
             // Pet Supplies
             _buildPetSupplies(context, pet),
