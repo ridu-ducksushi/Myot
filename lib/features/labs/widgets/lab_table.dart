@@ -657,7 +657,7 @@ class LabTableState extends State<LabTable> {
 
       final key = 'lab_custom_order_${uid}_${widget.petId}';
       final orderJson = prefs.getString(key);
-      if (orderJson != null) {
+      if (orderJson != null && mounted) {
         final orderList = jsonDecode(orderJson) as List<dynamic>;
         setState(() {
           _customOrder = orderList.cast<String>();
@@ -890,6 +890,7 @@ class LabTableState extends State<LabTable> {
         }
       }
 
+      if (!mounted) return;
       setState(() {
         _recordDates = validDates.toSet();
 
@@ -909,9 +910,11 @@ class LabTableState extends State<LabTable> {
       });
 
       // 날짜 설정 후 데이터 로드
+      if (!mounted) return;
       await _loadFromSupabase();
     } catch (e) {
       AppLogger.e('PetHealth', 'Error loading record dates', e);
+      if (!mounted) return;
       await _loadFromSupabase();
     }
   }
@@ -928,6 +931,7 @@ class LabTableState extends State<LabTable> {
           .eq('user_id', uid)
           .eq('pet_id', widget.petId);
 
+      if (!mounted) return;
       setState(() {
         _recordDates = resList
             .where((row) {
@@ -959,7 +963,7 @@ class LabTableState extends State<LabTable> {
       });
     } catch (e) {
       AppLogger.e('PetHealth', 'Error loading record dates', e);
-      await _loadFromLocal();
+      if (mounted) await _loadFromLocal();
     }
   }
 
@@ -978,7 +982,7 @@ class LabTableState extends State<LabTable> {
   }
 
   Future<void> _loadFromSupabase() async {
-    if (_isLoading) return;
+    if (_isLoading || !mounted) return;
 
     setState(() => _isLoading = true);
     _suppressOnChanged = true;
@@ -1071,6 +1075,8 @@ class LabTableState extends State<LabTable> {
           .limit(10);
 
       AppLogger.d('PetHealth', 'Query result (<= selected date): $resList');
+
+      if (!mounted) return;
 
       // Reset previous values cache
       _previousValues.clear();
@@ -1241,14 +1247,18 @@ class LabTableState extends State<LabTable> {
       }
     } catch (e) {
       AppLogger.e('PetHealth', 'Load error', e);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('labs.load_error'.tr(namedArgs: {'error': e.toString()}))));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('labs.load_error'.tr(namedArgs: {'error': e.toString()}))));
+      }
     } finally {
       _suppressOnChanged = false;
       // 로드 중 발생한 보류 저장 타이머 취소
       _saveTimer?.cancel();
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -1422,7 +1432,9 @@ class LabTableState extends State<LabTable> {
         ).showSnackBar(SnackBar(content: Text('labs.save_error'.tr(namedArgs: {'error': e.toString()}))));
       }
     } finally {
-      setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
       // 저장 과정에서 빌드/레이아웃이 변경된 후에도
       // 사용자가 보던 검사 항목 위치를 유지하도록 스크롤 복원
       _restoreScrollOffset();
@@ -1762,6 +1774,7 @@ class LabTableState extends State<LabTable> {
           ? items[_keyCost]['value'] as String
           : _cost;
       AppLogger.d('PetHealth', '로컬 캐시에서 로드 완료: key=$key');
+      if (!mounted) return;
       final datesKey = 'labs_dates_${scope}_${widget.petId}';
       final dates = (prefs.getStringList(datesKey) ?? <String>[]);
       setState(() {
