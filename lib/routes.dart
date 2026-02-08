@@ -11,6 +11,16 @@ import 'package:petcare/features/labs/health_tab_screen.dart';
 import 'package:petcare/features/labs/pet_health_screen.dart';
 import 'package:petcare/features/labs/chart_screen.dart';
 import 'package:petcare/features/records/records_chart_screen.dart';
+import 'package:petcare/features/records/symptom_timeline_screen.dart';
+import 'package:petcare/features/records/water_stats_screen.dart';
+import 'package:petcare/features/records/walk_stats_screen.dart';
+import 'package:petcare/features/food_calculator/food_calculator_screen.dart';
+import 'package:petcare/features/grooming/grooming_screen.dart';
+import 'package:petcare/features/vaccination/vaccination_schedule_screen.dart';
+import 'package:petcare/features/allergy/allergy_screen.dart';
+import 'package:petcare/features/emergency_contacts/emergency_contacts_screen.dart';
+import 'package:petcare/features/labs/health_report_screen.dart';
+import 'package:petcare/features/labs/weight_guide_screen.dart';
 import 'package:petcare/ui/home.dart';
 import 'package:petcare/data/services/admob_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -74,6 +84,66 @@ final router = GoRouter(
           builder: (context, state) => RecordsChartScreen(
             petId: state.pathParameters['petId']!,
             petName: state.uri.queryParameters['name'] ?? '펫',
+          ),
+        ),
+        GoRoute(
+          path: 'symptom-timeline',
+          builder: (context, state) => SymptomTimelineScreen(
+            petId: state.pathParameters['petId']!,
+          ),
+        ),
+        GoRoute(
+          path: 'water-stats',
+          builder: (context, state) => WaterStatsScreen(
+            petId: state.pathParameters['petId']!,
+          ),
+        ),
+        GoRoute(
+          path: 'walk-stats',
+          builder: (context, state) => WalkStatsScreen(
+            petId: state.pathParameters['petId']!,
+          ),
+        ),
+        GoRoute(
+          path: 'food-calculator',
+          builder: (context, state) => FoodCalculatorScreen(
+            petId: state.pathParameters['petId']!,
+          ),
+        ),
+        GoRoute(
+          path: 'grooming',
+          builder: (context, state) => GroomingScreen(
+            petId: state.pathParameters['petId']!,
+          ),
+        ),
+        GoRoute(
+          path: 'vaccination',
+          builder: (context, state) => VaccinationScheduleScreen(
+            petId: state.pathParameters['petId']!,
+          ),
+        ),
+        GoRoute(
+          path: 'allergies',
+          builder: (context, state) => AllergyScreen(
+            petId: state.pathParameters['petId']!,
+          ),
+        ),
+        GoRoute(
+          path: 'emergency-contacts',
+          builder: (context, state) => EmergencyContactsScreen(
+            petId: state.pathParameters['petId']!,
+          ),
+        ),
+        GoRoute(
+          path: 'report',
+          builder: (context, state) => HealthReportScreen(
+            petId: state.pathParameters['petId']!,
+          ),
+        ),
+        GoRoute(
+          path: 'weight-guide',
+          builder: (context, state) => WeightGuideScreen(
+            petId: state.pathParameters['petId']!,
           ),
         ),
       ],
