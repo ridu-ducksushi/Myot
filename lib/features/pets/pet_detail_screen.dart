@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:petcare/core/providers/pets_provider.dart';
 import 'package:petcare/data/models/pet.dart';
 import 'package:petcare/data/models/pet_supplies.dart';
+import 'package:petcare/data/local/database.dart';
 import 'package:petcare/data/repositories/pet_supplies_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:petcare/ui/widgets/common_widgets.dart';
@@ -104,7 +105,8 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
     
     // Repository 초기화
     _suppliesRepository = PetSuppliesRepository(
-      Supabase.instance.client,
+      supabase: Supabase.instance.client,
+      localDb: LocalDatabase.instance,
     );
     
     // 오늘 날짜로 초기화 후, 저장된 선택 날짜가 있으면 복원

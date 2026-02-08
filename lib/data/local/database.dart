@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:petcare/data/models/pet.dart';
+import 'package:petcare/data/models/pet_supplies.dart';
 import 'package:petcare/data/models/record.dart';
 import 'package:petcare/data/models/reminder.dart';
 import 'package:petcare/utils/app_logger.dart';
@@ -18,6 +19,7 @@ class LocalDatabase {
   static const String _petsKey = 'pets';
   static const String _recordsKey = 'records';
   static const String _remindersKey = 'reminders';
+  static const String _suppliesKey = 'pet_supplies';
   
   LocalDatabase._();
 
@@ -104,6 +106,7 @@ class LocalDatabase {
     await _removeScopedKey(_petsKey);
     await _removeScopedKey(_recordsKey);
     await _removeScopedKey(_remindersKey);
+    await _removeScopedKey(_suppliesKey);
     AppLogger.d('LocalDB', '모든 로컬 데이터 삭제 완료');
   }
   
@@ -113,7 +116,7 @@ class LocalDatabase {
       final petsJson = _getScopedString(_petsKey);
       if (petsJson == null) return [];
       
-      final List<dynamic> petsList = json.decode(petsJson);
+      final petsList = json.decode(petsJson) as List<dynamic>;
       final pets = petsList.map((json) => Pet.fromJson(json as Map<String, dynamic>)).toList();
       AppLogger.d('LocalDB', '로컬에서 ${pets.length}개 펫 로드');
       return pets;
@@ -128,7 +131,7 @@ class LocalDatabase {
     try {
       final petsJson = _getScopedStringFor(_petsKey, scopeUserId);
       if (petsJson == null) return [];
-      final List<dynamic> petsList = json.decode(petsJson);
+      final petsList = json.decode(petsJson) as List<dynamic>;
       final pets = petsList.map((json) => Pet.fromJson(json as Map<String, dynamic>)).toList();
       AppLogger.d('LocalDB', '[$scopeUserId] 스코프에서 ${pets.length}개 펫 로드');
       return pets;
@@ -188,7 +191,7 @@ class LocalDatabase {
       final recordsJson = _getScopedString(_recordsKey);
       if (recordsJson == null) return [];
       
-      final List<dynamic> recordsList = json.decode(recordsJson);
+      final recordsList = json.decode(recordsJson) as List<dynamic>;
       return recordsList.map((json) => Record.fromJson(json as Map<String, dynamic>)).toList();
     } catch (e) {
       AppLogger.e('LocalDB', '기록 데이터 로드 실패', e);
@@ -237,7 +240,7 @@ class LocalDatabase {
       final remindersJson = _getScopedString(_remindersKey);
       if (remindersJson == null) return [];
       
-      final List<dynamic> remindersList = json.decode(remindersJson);
+      final remindersList = json.decode(remindersJson) as List<dynamic>;
       return remindersList.map((json) => Reminder.fromJson(json as Map<String, dynamic>)).toList();
     } catch (e) {
       AppLogger.e('LocalDB', '리마인더 데이터 로드 실패', e);
@@ -277,6 +280,70 @@ class LocalDatabase {
       await _setScopedString(_remindersKey, remindersJson);
     } catch (e) {
       AppLogger.e('LocalDB', '리마인더 삭제 실패', e);
+    }
+  }
+
+  // PetSupplies operations
+  Future<List<PetSupplies>> getAllSupplies() async {
+    try {
+      final suppliesJson = _getScopedString(_suppliesKey);
+      if (suppliesJson == null) return [];
+
+      final suppliesList = json.decode(suppliesJson) as List<dynamic>;
+      return suppliesList.map((json) => PetSupplies.fromJson(json as Map<String, dynamic>)).toList();
+    } catch (e) {
+      AppLogger.e('LocalDB', '용품 데이터 로드 실패', e);
+      return [];
+    }
+  }
+
+  Future<List<PetSupplies>> getSuppliesForPet(String petId) async {
+    final supplies = await getAllSupplies();
+    return supplies.where((s) => s.petId == petId).toList();
+  }
+
+  Future<PetSupplies?> getSuppliesByDate(String petId, DateTime date) async {
+    final supplies = await getSuppliesForPet(petId);
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    try {
+      return supplies.firstWhere(
+        (s) => s.recordedAt.isAfter(startOfDay.subtract(const Duration(seconds: 1))) &&
+               s.recordedAt.isBefore(endOfDay),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> saveSupplies(PetSupplies supplies) async {
+    try {
+      final allSupplies = await getAllSupplies();
+      final index = allSupplies.indexWhere((s) => s.id == supplies.id);
+
+      if (index >= 0) {
+        allSupplies[index] = supplies;
+      } else {
+        allSupplies.add(supplies);
+      }
+
+      final suppliesJson = json.encode(allSupplies.map((s) => s.toJson()).toList());
+      await _setScopedString(_suppliesKey, suppliesJson);
+    } catch (e) {
+      AppLogger.e('LocalDB', '용품 저장 실패', e);
+    }
+  }
+
+  Future<void> deleteSupplies(String id) async {
+    try {
+      final allSupplies = await getAllSupplies();
+      allSupplies.removeWhere((s) => s.id == id);
+
+      final suppliesJson = json.encode(allSupplies.map((s) => s.toJson()).toList());
+      await _setScopedString(_suppliesKey, suppliesJson);
+    } catch (e) {
+      AppLogger.e('LocalDB', '용품 삭제 실패', e);
     }
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:petcare/data/models/pet.dart';
 import 'package:petcare/data/models/pet_supplies.dart';
+import 'package:petcare/data/local/database.dart';
 import 'package:petcare/data/repositories/pet_supplies_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:petcare/ui/widgets/common_widgets.dart';
@@ -53,7 +54,8 @@ class EditSuppliesSheetState extends ConsumerState<EditSuppliesSheet> {
       'litter': FocusNode(),
     };
     _suppliesRepository = PetSuppliesRepository(
-      Supabase.instance.client,
+      supabase: Supabase.instance.client,
+      localDb: LocalDatabase.instance,
     );
     _initializeForm();
     WidgetsBinding.instance.addPostFrameCallback((_) {

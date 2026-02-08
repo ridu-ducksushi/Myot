@@ -1,132 +1,163 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:petcare/data/models/pet_supplies.dart';
+import 'package:petcare/data/local/database.dart';
+import 'package:petcare/data/repositories/base_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:petcare/utils/app_logger.dart';
 
-class PetSuppliesRepository {
-  final SupabaseClient _client;
 
-  PetSuppliesRepository(this._client);
+class PetSuppliesRepository extends BaseRepository {
+  PetSuppliesRepository({
+    required super.supabase,
+    required super.localDb,
+  });
+
+  @override
+  String get tag => 'SuppliesRepo';
 
   bool _isEmptySuppliesRow(Map<String, dynamic> row) {
-    bool _isEmpty(dynamic v) => v == null || (v is String && v.trim().isEmpty);
-    return _isEmpty(row['dry_food']) &&
-        _isEmpty(row['wet_food']) &&
-        _isEmpty(row['supplement']) &&
-        _isEmpty(row['snack']) &&
-        _isEmpty(row['litter']);
+    bool isEmpty(dynamic v) => v == null || (v is String && v.trim().isEmpty);
+    return isEmpty(row['dry_food']) &&
+        isEmpty(row['wet_food']) &&
+        isEmpty(row['supplement']) &&
+        isEmpty(row['snack']) &&
+        isEmpty(row['litter']);
   }
 
   // 특정 날짜의 물품 기록 조회
   Future<PetSupplies?> getSuppliesByDate(String petId, DateTime date) async {
-    try {
-      final startOfDay = DateTime(date.year, date.month, date.day);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
+    return withCloudFallback<PetSupplies?>(
+      operationName: 'getSuppliesByDate',
+      cloudAction: () async {
+        final startOfDay = DateTime(date.year, date.month, date.day);
+        final endOfDay = startOfDay.add(const Duration(days: 1));
 
-      final response = await _client
-          .from('pet_supplies')
-          .select()
-          .eq('pet_id', petId)
-          .gte('recorded_at', startOfDay.toIso8601String())
-          .lt('recorded_at', endOfDay.toIso8601String())
-          .order('recorded_at', ascending: false)
-          .limit(1)
-          .maybeSingle();
+        final response = await supabase
+            .from('pet_supplies')
+            .select()
+            .eq('pet_id', petId)
+            .gte('recorded_at', startOfDay.toIso8601String())
+            .lt('recorded_at', endOfDay.toIso8601String())
+            .order('recorded_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
 
-      if (response == null) return null;
-      if (_isEmptySuppliesRow(response)) return null;
+        if (response == null) return null;
+        if (_isEmptySuppliesRow(response)) return null;
 
-      return PetSupplies.fromJson(_fromSupabaseRow(response));
-    } catch (e) {
-      AppLogger.e('SuppliesRepo', 'Error getting supplies by date', e);
-      return null;
-    }
+        final supplies = PetSupplies.fromJson(_fromSupabaseRow(response));
+        await localDb.saveSupplies(supplies);
+        return supplies;
+      },
+      localFallback: () => localDb.getSuppliesByDate(petId, date),
+    );
   }
 
   // 특정 펫의 모든 물품 기록 날짜 조회
   Future<List<DateTime>> getSuppliesRecordDates(String petId) async {
-    try {
-      final response = await _client
-          .from('pet_supplies')
-          .select('recorded_at,dry_food,wet_food,supplement,snack,litter')
-          .eq('pet_id', petId)
-          .order('recorded_at', ascending: false);
+    return withCloudFallback<List<DateTime>>(
+      operationName: 'getSuppliesRecordDates',
+      cloudAction: () async {
+        final response = await supabase
+            .from('pet_supplies')
+            .select('recorded_at,dry_food,wet_food,supplement,snack,litter')
+            .eq('pet_id', petId)
+            .order('recorded_at', ascending: false);
 
-      final filtered = (response as List)
-          .where((row) => !_isEmptySuppliesRow(row as Map<String, dynamic>))
-          .map((row) => DateTime.parse(row['recorded_at'] as String))
-          .map((dt) => DateTime(dt.year, dt.month, dt.day))
-          .toSet()
-          .toList();
+        final filtered = (response as List)
+            .where((row) => !_isEmptySuppliesRow(row as Map<String, dynamic>))
+            .map((row) => DateTime.parse(row['recorded_at'] as String))
+            .map((dt) => DateTime(dt.year, dt.month, dt.day))
+            .toSet()
+            .toList();
 
-      return filtered;
-    } catch (e) {
-      AppLogger.e('SuppliesRepo', 'Error getting supplies record dates', e);
-      return [];
-    }
+        return filtered;
+      },
+      localFallback: () async {
+        final supplies = await localDb.getSuppliesForPet(petId);
+        return supplies
+            .map((s) => DateTime(s.recordedAt.year, s.recordedAt.month, s.recordedAt.day))
+            .toSet()
+            .toList();
+      },
+    );
   }
 
   // 물품 기록 저장/업데이트
   Future<PetSupplies> saveSupplies(PetSupplies supplies) async {
-    try {
-      final data = _toSupabaseRow(supplies);
+    return saveWithCloudFallback<PetSupplies>(
+      operationName: 'saveSupplies',
+      cloudAction: () async {
+        final data = _toSupabaseRow(supplies);
 
-      // 같은 날짜의 기록이 있는지 확인
-      final existing = await getSuppliesByDate(supplies.petId, supplies.recordedAt);
+        // 같은 날짜의 기록이 있는지 확인
+        final startOfDay = DateTime(supplies.recordedAt.year, supplies.recordedAt.month, supplies.recordedAt.day);
+        final endOfDay = startOfDay.add(const Duration(days: 1));
 
-      bool isAllEmpty = [
-        supplies.dryFood,
-        supplies.wetFood,
-        supplies.supplement,
-        supplies.snack,
-        supplies.litter,
-      ].every((v) => v == null || (v?.trim().isEmpty ?? true));
-
-      if (existing != null) {
-        if (isAllEmpty) {
-          // 모든 값이 비어있으면 해당 날짜 레코드 삭제
-          await _client.from('pet_supplies').delete().eq('id', existing.id);
-          // 삭제 후에도 상위 로직이 날짜 목록을 재조회하여 UI 갱신하도록 빈 값 그대로 반환
-          return supplies;
-        }
-        // 업데이트
-        final response = await _client
+        final existingResponse = await supabase
             .from('pet_supplies')
-            .update(data)
-            .eq('id', existing.id)
             .select()
-            .single();
+            .eq('pet_id', supplies.petId)
+            .gte('recorded_at', startOfDay.toIso8601String())
+            .lt('recorded_at', endOfDay.toIso8601String())
+            .order('recorded_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
 
-        return PetSupplies.fromJson(_fromSupabaseRow(response));
-      } else {
-        // 새로 생성: 단, 모두 비어있으면 생성하지 않음
-        if (isAllEmpty) {
-          return supplies;
+        final existing = existingResponse != null && !_isEmptySuppliesRow(existingResponse)
+            ? PetSupplies.fromJson(_fromSupabaseRow(existingResponse))
+            : null;
+
+        bool isAllEmpty = [
+          supplies.dryFood,
+          supplies.wetFood,
+          supplies.supplement,
+          supplies.snack,
+          supplies.litter,
+        ].every((v) => v == null || v.trim().isEmpty);
+
+        if (existing != null) {
+          if (isAllEmpty) {
+            await supabase.from('pet_supplies').delete().eq('id', existing.id);
+            await localDb.deleteSupplies(existing.id);
+            return supplies;
+          }
+          final response = await supabase
+              .from('pet_supplies')
+              .update(data)
+              .eq('id', existing.id)
+              .select()
+              .single();
+
+          final saved = PetSupplies.fromJson(_fromSupabaseRow(response));
+          await localDb.saveSupplies(saved);
+          return saved;
+        } else {
+          if (isAllEmpty) {
+            return supplies;
+          }
+          final response = await supabase
+              .from('pet_supplies')
+              .insert(data)
+              .select()
+              .single();
+
+          final saved = PetSupplies.fromJson(_fromSupabaseRow(response));
+          await localDb.saveSupplies(saved);
+          return saved;
         }
-        final response = await _client
-            .from('pet_supplies')
-            .insert(data)
-            .select()
-            .single();
-
-        return PetSupplies.fromJson(_fromSupabaseRow(response));
-      }
-    } catch (e) {
-      AppLogger.e('SuppliesRepo', 'Error saving supplies', e);
-      rethrow;
-    }
+      },
+      localSave: () => localDb.saveSupplies(supplies),
+      fallbackValue: supplies,
+    );
   }
 
   // 물품 기록 삭제
   Future<void> deleteSupplies(String id) async {
-    try {
-      await _client
-          .from('pet_supplies')
-          .delete()
-          .eq('id', id);
-    } catch (e) {
-      AppLogger.e('SuppliesRepo', 'Error deleting supplies', e);
-      rethrow;
-    }
+    return deleteWithCloudFallback(
+      operationName: 'deleteSupplies',
+      cloudAction: () => supabase.from('pet_supplies').delete().eq('id', id),
+      localDelete: () => localDb.deleteSupplies(id),
+    );
   }
 
   // Supabase snake_case → Flutter camelCase 변환
@@ -162,3 +193,10 @@ class PetSuppliesRepository {
   }
 }
 
+/// Provider for pet supplies repository
+final petSuppliesRepositoryProvider = Provider<PetSuppliesRepository>((ref) {
+  return PetSuppliesRepository(
+    supabase: Supabase.instance.client,
+    localDb: LocalDatabase.instance,
+  );
+});
