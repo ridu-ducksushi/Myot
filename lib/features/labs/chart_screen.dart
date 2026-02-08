@@ -386,28 +386,62 @@ class _ChartScreenState extends ConsumerState<ChartScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _chartData.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.analytics_outlined,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'chart.no_data_for_period'.tr(),
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
+                    ? _buildEmptyStateWithDescription()
                     : _buildChart(pet),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyStateWithDescription() {
+    final description =
+        LabReferenceRanges.getDescription(_selectedTestItem ?? '');
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: Column(
+        children: [
+          const SizedBox(height: 16),
+          Icon(
+            Icons.analytics_outlined,
+            size: 48,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'chart.no_data_for_period'.tr(),
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+          if (description.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            Divider(color: colorScheme.outlineVariant.withOpacity(0.3)),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 18,
+                  color: colorScheme.onSurface.withOpacity(0.5),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    description,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurface.withOpacity(0.6),
+                          height: 1.5,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
