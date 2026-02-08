@@ -28,10 +28,15 @@ class HealthReportScreen extends ConsumerStatefulWidget {
 
 class _HealthReportScreenState extends ConsumerState<HealthReportScreen> {
   int _selectedMonths = 3;
+  late DateTime _endDate = DateUtils.dateOnly(DateTime.now());
+  late DateTime _startDate =
+      DateUtils.dateOnly(DateTime.now().subtract(Duration(days: _selectedMonths * 30)));
 
-  DateTime get _startDate =>
-      DateTime.now().subtract(Duration(days: _selectedMonths * 30));
-  DateTime get _endDate => DateTime.now();
+  void _updateDates() {
+    _endDate = DateUtils.dateOnly(DateTime.now());
+    _startDate = DateUtils.dateOnly(
+        DateTime.now().subtract(Duration(days: _selectedMonths * 30)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +167,10 @@ class _HealthReportScreenState extends ConsumerState<HealthReportScreen> {
       selected: isSelected,
       onSelected: (selected) {
         if (selected) {
-          setState(() => _selectedMonths = months);
+          setState(() {
+            _selectedMonths = months;
+            _updateDates();
+          });
         }
       },
     );

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:petcare/data/models/reminder.dart';
+import 'package:petcare/data/repositories/reminders_repository.dart';
 
 /// State class for reminders list
 class RemindersState {
@@ -28,55 +29,21 @@ class RemindersState {
 
 /// Reminders provider notifier
 class RemindersNotifier extends StateNotifier<RemindersState> {
-  RemindersNotifier() : super(const RemindersState());
+  RemindersNotifier(this._repository) : super(const RemindersState());
+
+  final RemindersRepository _repository;
 
   /// Load all reminders
   Future<void> loadReminders([String? petId]) async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
-      // TODO: Implement actual data loading from repository
-      await Future<void>.delayed(const Duration(seconds: 1));
-      
-      // Mock data for now
-      final mockReminders = [
-        Reminder(
-          id: '1',
-          petId: '1',
-          type: 'vaccine',
-          title: 'Annual Vaccination',
-          note: 'DHPP vaccine due',
-          scheduledAt: DateTime.now().add(const Duration(days: 7)),
-          createdAt: DateTime.now(),
-        ),
-        Reminder(
-          id: '2',
-          petId: '1',
-          type: 'medicine',
-          title: 'Heartworm Prevention',
-          note: 'Monthly heartworm medication',
-          scheduledAt: DateTime.now().add(const Duration(days: 3)),
-          repeatRule: 'monthly',
-          createdAt: DateTime.now(),
-        ),
-        Reminder(
-          id: '3',
-          petId: '2',
-          type: 'grooming',
-          title: 'Nail Trim',
-          note: 'Trim claws',
-          scheduledAt: DateTime.now().add(const Duration(days: 14)),
-          createdAt: DateTime.now(),
-        ),
-      ];
-      
-      // Filter by pet if petId is provided
-      final filteredReminders = petId != null
-          ? mockReminders.where((reminder) => reminder.petId == petId).toList()
-          : mockReminders;
-      
+      final reminders = petId != null
+          ? await _repository.getRemindersForPet(petId)
+          : await _repository.getAllReminders();
+
       state = state.copyWith(
-        reminders: filteredReminders,
+        reminders: reminders,
         isLoading: false,
       );
     } catch (e) {
@@ -89,94 +56,70 @@ class RemindersNotifier extends StateNotifier<RemindersState> {
 
   /// Add a new reminder
   Future<void> addReminder(Reminder reminder) async {
-    state = state.copyWith(isLoading: true, error: null);
-    
+    final oldReminders = state.reminders;
+    final updatedReminders = [reminder, ...oldReminders];
+    state = state.copyWith(reminders: updatedReminders); // Optimistic update
+
     try {
-      // TODO: Implement actual data saving to repository
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      
-      final updatedReminders = [...state.reminders, reminder];
-      state = state.copyWith(
-        reminders: updatedReminders,
-        isLoading: false,
-      );
+      final savedReminder = await _repository.createReminder(reminder);
+      final finalReminders = [savedReminder, ...oldReminders];
+      state = state.copyWith(reminders: finalReminders);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(reminders: oldReminders, error: e.toString());
     }
   }
 
   /// Update an existing reminder
   Future<void> updateReminder(Reminder updatedReminder) async {
-    state = state.copyWith(isLoading: true, error: null);
-    
+    final oldReminders = state.reminders;
+    final updatedReminders = state.reminders.map((reminder) {
+      return reminder.id == updatedReminder.id ? updatedReminder : reminder;
+    }).toList();
+    state = state.copyWith(reminders: updatedReminders); // Optimistic update
+
     try {
-      // TODO: Implement actual data updating in repository
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      
-      final updatedReminders = state.reminders.map((reminder) {
-        return reminder.id == updatedReminder.id ? updatedReminder : reminder;
+      final savedReminder = await _repository.updateReminder(updatedReminder);
+      final finalReminders = state.reminders.map((reminder) {
+        return reminder.id == savedReminder.id ? savedReminder : reminder;
       }).toList();
-      
-      state = state.copyWith(
-        reminders: updatedReminders,
-        isLoading: false,
-      );
+      state = state.copyWith(reminders: finalReminders);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(reminders: oldReminders, error: e.toString());
     }
   }
 
   /// Mark reminder as done
   Future<void> markReminderDone(String reminderId) async {
-    state = state.copyWith(isLoading: true, error: null);
-    
+    final oldReminders = state.reminders;
+    final updatedReminders = state.reminders.map((reminder) {
+      if (reminder.id == reminderId) {
+        return reminder.copyWith(done: true);
+      }
+      return reminder;
+    }).toList();
+    state = state.copyWith(reminders: updatedReminders); // Optimistic update
+
     try {
-      // TODO: Implement actual data updating in repository
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      
-      final updatedReminders = state.reminders.map((reminder) {
-        if (reminder.id == reminderId) {
-          return reminder.copyWith(done: true);
-        }
-        return reminder;
+      final savedReminder = await _repository.markReminderDone(reminderId);
+      final finalReminders = state.reminders.map((reminder) {
+        return reminder.id == savedReminder.id ? savedReminder : reminder;
       }).toList();
-      
-      state = state.copyWith(
-        reminders: updatedReminders,
-        isLoading: false,
-      );
+      state = state.copyWith(reminders: finalReminders);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(reminders: oldReminders, error: e.toString());
     }
   }
 
   /// Delete a reminder
   Future<void> deleteReminder(String reminderId) async {
-    state = state.copyWith(isLoading: true, error: null);
-    
+    final oldReminders = state.reminders;
+    final updatedReminders = state.reminders.where((reminder) => reminder.id != reminderId).toList();
+    state = state.copyWith(reminders: updatedReminders); // Optimistic update
+
     try {
-      // TODO: Implement actual data deletion from repository
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      
-      final updatedReminders = state.reminders.where((reminder) => reminder.id != reminderId).toList();
-      state = state.copyWith(
-        reminders: updatedReminders,
-        isLoading: false,
-      );
+      await _repository.deleteReminder(reminderId);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(reminders: oldReminders, error: e.toString());
     }
   }
 
@@ -188,7 +131,7 @@ class RemindersNotifier extends StateNotifier<RemindersState> {
 
 /// Reminders provider
 final remindersProvider = StateNotifierProvider<RemindersNotifier, RemindersState>((ref) {
-  return RemindersNotifier();
+  return RemindersNotifier(ref.read(remindersRepositoryProvider));
 });
 
 /// Reminders for specific pet provider

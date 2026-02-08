@@ -15,10 +15,39 @@ class RemindersRepository extends BaseRepository {
   @override
   String get tag => 'RemindersRepo';
 
+  /// Convert Reminder model (camelCase) to Supabase row (snake_case)
+  Map<String, dynamic> _toSupabaseRow(Reminder reminder) {
+    return {
+      'id': reminder.id,
+      'pet_id': reminder.petId,
+      'type': reminder.type,
+      'title': reminder.title,
+      'note': reminder.note,
+      'scheduled_at': reminder.scheduledAt.toIso8601String(),
+      'repeat_rule': reminder.repeatRule,
+      'done': reminder.done,
+      'created_at': reminder.createdAt.toIso8601String(),
+    };
+  }
+
+  /// Convert Supabase row (snake_case) to Reminder model (camelCase)
+  Reminder _fromSupabaseRow(Map<String, dynamic> row) {
+    return Reminder(
+      id: row['id'] as String,
+      petId: row['pet_id'] as String,
+      type: row['type'] as String,
+      title: row['title'] as String,
+      note: row['note'] as String?,
+      scheduledAt: DateTime.parse(row['scheduled_at'] as String),
+      repeatRule: row['repeat_rule'] as String?,
+      done: row['done'] as bool? ?? false,
+      createdAt: DateTime.parse(row['created_at'] as String),
+    );
+  }
+
   /// Get all reminders for a pet
   Future<List<Reminder>> getRemindersForPet(String petId) async {
     try {
-      // Try to fetch from Supabase first
       final response = await supabase
           .from('reminders')
           .select()
@@ -26,10 +55,9 @@ class RemindersRepository extends BaseRepository {
           .order('scheduled_at', ascending: true);
 
       final reminders = (response as List)
-          .map((json) => Reminder.fromJson(json as Map<String, dynamic>))
+          .map((json) => _fromSupabaseRow(json as Map<String, dynamic>))
           .toList();
 
-      // Cache locally
       for (final reminder in reminders) {
         await localDb.saveReminder(reminder);
       }
@@ -37,7 +65,6 @@ class RemindersRepository extends BaseRepository {
       return reminders;
     } catch (e) {
       AppLogger.e('RemindersRepo', 'Failed to fetch reminders from Supabase', e);
-      // Fallback to local database
       return await localDb.getRemindersForPet(petId);
     }
   }
@@ -45,10 +72,8 @@ class RemindersRepository extends BaseRepository {
   /// Get all reminders
   Future<List<Reminder>> getAllReminders() async {
     try {
-      // Try to fetch from Supabase first
       final user = supabase.auth.currentUser;
       if (user != null) {
-        // Get reminders for user's pets
         final response = await supabase
             .from('reminders')
             .select('''
@@ -59,10 +84,9 @@ class RemindersRepository extends BaseRepository {
             .order('scheduled_at', ascending: true);
 
         final reminders = (response as List)
-            .map((json) => Reminder.fromJson(json as Map<String, dynamic>))
+            .map((json) => _fromSupabaseRow(json as Map<String, dynamic>))
             .toList();
 
-        // Cache locally
         for (final reminder in reminders) {
           await localDb.saveReminder(reminder);
         }
@@ -73,7 +97,6 @@ class RemindersRepository extends BaseRepository {
       AppLogger.e('RemindersRepo', 'Failed to fetch reminders from Supabase', e);
     }
 
-    // Fallback to local database
     return await localDb.getAllReminders();
   }
 
@@ -98,18 +121,17 @@ class RemindersRepository extends BaseRepository {
             .order('scheduled_at', ascending: true);
 
         return (response as List)
-            .map((json) => Reminder.fromJson(json as Map<String, dynamic>))
+            .map((json) => _fromSupabaseRow(json as Map<String, dynamic>))
             .toList();
       }
     } catch (e) {
       AppLogger.e('RemindersRepo', 'Failed to fetch upcoming reminders from Supabase', e);
     }
 
-    // Fallback to filtering local reminders
     final allReminders = await localDb.getAllReminders();
     return allReminders.where((reminder) {
-      return !reminder.done && 
-             reminder.scheduledAt.isAfter(now) && 
+      return !reminder.done &&
+             reminder.scheduledAt.isAfter(now) &&
              reminder.scheduledAt.isBefore(sevenDaysFromNow);
     }).toList()..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
   }
@@ -133,14 +155,13 @@ class RemindersRepository extends BaseRepository {
             .order('scheduled_at', ascending: true);
 
         return (response as List)
-            .map((json) => Reminder.fromJson(json as Map<String, dynamic>))
+            .map((json) => _fromSupabaseRow(json as Map<String, dynamic>))
             .toList();
       }
     } catch (e) {
       AppLogger.e('RemindersRepo', 'Failed to fetch overdue reminders from Supabase', e);
     }
 
-    // Fallback to filtering local reminders
     final allReminders = await localDb.getAllReminders();
     return allReminders.where((reminder) {
       return !reminder.done && reminder.scheduledAt.isBefore(now);
@@ -149,16 +170,20 @@ class RemindersRepository extends BaseRepository {
 
   /// Create a new reminder
   Future<Reminder> createReminder(Reminder reminder) async {
+    final row = _toSupabaseRow(reminder);
+    row.remove('id'); // Let Supabase generate the ID
+    row.remove('created_at'); // Let Supabase set created_at
+
     return saveWithCloudFallback<Reminder>(
       operationName: 'createReminder',
       cloudAction: () async {
         final response = await supabase
             .from('reminders')
-            .insert(reminder.toJson())
+            .insert(row)
             .select()
             .single();
 
-        final savedReminder = Reminder.fromJson(response as Map<String, dynamic>);
+        final savedReminder = _fromSupabaseRow(response);
         await localDb.saveReminder(savedReminder);
         return savedReminder;
       },
@@ -169,17 +194,21 @@ class RemindersRepository extends BaseRepository {
 
   /// Update an existing reminder
   Future<Reminder> updateReminder(Reminder reminder) async {
+    final row = _toSupabaseRow(reminder);
+    row.remove('id');
+    row.remove('created_at');
+
     return saveWithCloudFallback<Reminder>(
       operationName: 'updateReminder',
       cloudAction: () async {
         final response = await supabase
             .from('reminders')
-            .update(reminder.toJson())
+            .update(row)
             .eq('id', reminder.id)
             .select()
             .single();
 
-        final updatedReminder = Reminder.fromJson(response as Map<String, dynamic>);
+        final updatedReminder = _fromSupabaseRow(response);
         await localDb.saveReminder(updatedReminder);
         return updatedReminder;
       },
@@ -200,7 +229,7 @@ class RemindersRepository extends BaseRepository {
             .select()
             .single();
 
-        final updatedReminder = Reminder.fromJson(response as Map<String, dynamic>);
+        final updatedReminder = _fromSupabaseRow(response);
         await localDb.saveReminder(updatedReminder);
         return updatedReminder;
       },
