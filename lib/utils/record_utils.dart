@@ -25,11 +25,15 @@ class RecordUtils {
         return Icons.local_hospital;
       case 'health_weight':
         return Icons.more_horiz;
+      case 'health_symptom':
+        return Icons.medical_information;
       case 'activity_play':
         return Icons.gamepad_outlined;
       case 'activity_explore':
         return Icons.explore_outlined;
       case 'activity_outing':
+        return Icons.directions_walk;
+      case 'activity_walk':
         return Icons.directions_walk;
       case 'activity_rest':
         return Icons.hotel_outlined;
@@ -43,6 +47,8 @@ class RecordUtils {
         return Icons.brush;
       case 'poop_other':
         return Icons.more_horiz;
+      case 'grooming':
+        return Icons.content_cut;
       default:
         return Icons.add_circle_outline;
     }
@@ -90,11 +96,15 @@ class RecordUtils {
       case 'health_supplement':
       case 'food_supplement':
         return Icons.medication;
+      case 'health_symptom':
+        return Icons.medical_information;
       case 'activity_play':
         return Icons.sports_tennis;
       case 'activity_explore':
         return Icons.explore_outlined;
       case 'activity_outing':
+        return Icons.directions_walk;
+      case 'activity_walk':
         return Icons.directions_walk;
       case 'activity_rest':
         return Icons.hotel_outlined;
@@ -106,6 +116,8 @@ class RecordUtils {
         return Icons.pets;
       case 'poop_other':
         return Icons.more_horiz;
+      case 'grooming':
+        return Icons.content_cut;
       case 'health':
         return Icons.favorite;
       default:
@@ -140,6 +152,7 @@ class RecordUtils {
       case 'health_vaccine':
       case 'health_visit':
       case 'health_weight':
+      case 'health_symptom':
         return 'health';
       case 'poop_feces':
       case 'poop_urine':
@@ -149,8 +162,10 @@ class RecordUtils {
       case 'activity_play':
       case 'activity_explore':
       case 'activity_outing':
+      case 'activity_walk':
       case 'activity_rest':
       case 'activity_other':
+      case 'grooming':
         return 'activity';
       default:
         return 'food';

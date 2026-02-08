@@ -151,6 +151,7 @@ class AppColors {
       case 'health_vaccine':
       case 'health_visit':
       case 'health_weight':
+      case 'health_symptom':
       case 'med':
       case 'medicine':
       case 'vaccine':
@@ -172,6 +173,7 @@ class AppColors {
       case 'activity_walk':
       case 'play':
       case 'groom':
+      case 'grooming':
         return 'activity';
       default:
         return 'food';

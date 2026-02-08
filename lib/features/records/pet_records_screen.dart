@@ -19,6 +19,11 @@ import 'package:petcare/features/records/records_chart_screen.dart';
 import 'package:petcare/utils/record_utils.dart';
 import 'package:petcare/features/records/widgets/time_24_table.dart';
 import 'package:petcare/features/records/widgets/record_card.dart';
+import 'package:petcare/features/records/widgets/poop_detail_sheet.dart';
+import 'package:petcare/features/records/widgets/urine_detail_sheet.dart';
+import 'package:petcare/features/records/widgets/water_intake_sheet.dart';
+import 'package:petcare/features/records/widgets/walk_record_sheet.dart';
+import 'package:petcare/features/records/widgets/symptom_checklist_sheet.dart';
 
 class _RecordCategoryAction {
   const _RecordCategoryAction({required this.icon, required this.type});
@@ -41,6 +46,7 @@ const Map<String, List<_RecordCategoryAction>> _recordCategoryActions = {
       icon: Icons.explore_outlined,
       type: 'activity_explore',
     ),
+    _RecordCategoryAction(icon: Icons.directions_walk, type: 'activity_walk'),
     _RecordCategoryAction(icon: Icons.directions_walk, type: 'activity_outing'),
     _RecordCategoryAction(icon: Icons.hotel_outlined, type: 'activity_rest'),
     _RecordCategoryAction(icon: Icons.more_horiz, type: 'activity_other'),
@@ -48,6 +54,7 @@ const Map<String, List<_RecordCategoryAction>> _recordCategoryActions = {
   'health': [
     _RecordCategoryAction(icon: Icons.vaccines, type: 'health_vaccine'),
     _RecordCategoryAction(icon: Icons.local_hospital, type: 'health_visit'),
+    _RecordCategoryAction(icon: Icons.medical_information, type: 'health_symptom'),
     _RecordCategoryAction(icon: Icons.more_horiz, type: 'health_weight'),
   ],
   'poop': [
@@ -503,6 +510,12 @@ class _PetRecordsScreenState extends ConsumerState<PetRecordsScreen> {
   }
 
   void _addRecord(BuildContext context, Pet pet, String type) {
+    // 전문 시트가 있는 타입은 바텀시트로 처리
+    if (_hasDetailSheet(type)) {
+      _showDetailSheet(context, pet, type);
+      return;
+    }
+
     final TextEditingController noteController = TextEditingController();
     TimeOfDay selectedTime = TimeOfDay.now();
 
@@ -613,6 +626,87 @@ class _PetRecordsScreenState extends ConsumerState<PetRecordsScreen> {
         );
       },
     );
+  }
+
+  bool _hasDetailSheet(String type) {
+    return const [
+      'poop_feces', 'poop_urine', 'food_water',
+      'activity_walk', 'health_symptom',
+    ].contains(type);
+  }
+
+  void _showDetailSheet(BuildContext context, Pet pet, String type) {
+    _closeAllSubMenus();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        switch (type) {
+          case 'poop_feces':
+            return PoopDetailSheet(
+              onSave: (value, note) {
+                _saveRecordWithValue(pet, type, value, note);
+                Navigator.of(ctx).pop();
+              },
+            );
+          case 'poop_urine':
+            return UrineDetailSheet(
+              onSave: (value, note) {
+                _saveRecordWithValue(pet, type, value, note);
+                Navigator.of(ctx).pop();
+              },
+            );
+          case 'food_water':
+            return WaterIntakeSheet(
+              onSave: (value, note) {
+                _saveRecordWithValue(pet, type, value, note);
+                Navigator.of(ctx).pop();
+              },
+            );
+          case 'activity_walk':
+            return WalkRecordSheet(
+              onSave: (value, note) {
+                _saveRecordWithValue(pet, type, value, note);
+                Navigator.of(ctx).pop();
+              },
+            );
+          case 'health_symptom':
+            return SymptomChecklistSheet(
+              onSave: (value, note) {
+                _saveRecordWithValue(pet, type, value, note);
+                Navigator.of(ctx).pop();
+              },
+            );
+          default:
+            return const SizedBox.shrink();
+        }
+      },
+    );
+  }
+
+  void _saveRecordWithValue(
+    Pet pet, String type, Map<String, dynamic> value, String note,
+  ) {
+    final now = DateTime.now();
+    final recordAt = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      now.hour,
+      now.minute,
+    );
+    final newRecord = Record(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      petId: pet.id,
+      type: type,
+      title: type,
+      content: note.isNotEmpty ? note : null,
+      value: value,
+      at: recordAt,
+      createdAt: now,
+      updatedAt: now,
+    );
+    ref.read(recordsProvider.notifier).addRecord(newRecord);
   }
 
   void _showRecordEditDialog(BuildContext context, Record record, Pet pet) {
