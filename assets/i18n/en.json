@@ -72,7 +72,10 @@
     "profile_set_success": "Profile has been set",
     "profile_set_error": "Failed to set profile",
     "neutered_yes": "Neutered",
-    "neutered_no": "Not neutered"
+    "neutered_no": "Not neutered",
+    "memo_hint": "Add a memo",
+    "together_for": "Together for {}",
+    "together_today": "Together starting today"
   },
   "common": {
     "save": "Save",
@@ -208,7 +211,8 @@
     "saved": "Supplies record has been saved",
     "save_failed": "Failed to save supplies record",
     "no_previous": "No previous records",
-    "latest_record": "Already at latest record"
+    "latest_record": "Already at latest record",
+    "add_prompt": "Add a record!"
   },
   "views": {
     "daily": "Daily",

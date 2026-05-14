@@ -69,7 +69,10 @@
     "profile_set_success": "プロフィールが設定されました",
     "profile_set_error": "プロフィールの設定に失敗しました",
     "neutered_yes": "去勢・避妊済み",
-    "neutered_no": "未去勢・未避妊"
+    "neutered_no": "未去勢・未避妊",
+    "memo_hint": "メモを入力してください",
+    "together_for": "一緒に過ごして {}",
+    "together_today": "今日から一緒"
   },
   "common": {
     "save": "保存",
@@ -202,7 +205,8 @@
     "saved": "用品記録が保存されました",
     "save_failed": "用品記録の保存に失敗しました",
     "no_previous": "前の記録がありません",
-    "latest_record": "現在最新の記録です"
+    "latest_record": "現在最新の記録です",
+    "add_prompt": "記録を追加してみましょう！"
   },
   "views": {
     "daily": "日次",

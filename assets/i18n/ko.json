@@ -69,7 +69,10 @@
     "profile_set_success": "프로필이 설정되었습니다",
     "profile_set_error": "프로필 설정에 실패했습니다",
     "neutered_yes": "중성화 완료",
-    "neutered_no": "중성화 미완료"
+    "neutered_no": "중성화 미완료",
+    "memo_hint": "메모를 입력해주세요",
+    "together_for": "우리 함께한 지 {}",
+    "together_today": "오늘부터 함께"
   },
   "common": {
     "save": "저장",
@@ -202,7 +205,8 @@
     "saved": "물품 기록이 저장되었습니다",
     "save_failed": "물품 기록 저장에 실패했습니다",
     "no_previous": "이전 기록이 없습니다",
-    "latest_record": "현재 최신 기록입니다"
+    "latest_record": "현재 최신 기록입니다",
+    "add_prompt": "기록을 추가해보세요!"
   },
   "views": {
     "daily": "일간",
