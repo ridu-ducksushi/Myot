@@ -20,7 +20,6 @@ import 'package:petcare/features/pets/widgets/edit_supplies_sheet.dart';
 import 'package:petcare/features/pets/widgets/profile_header_card.dart';
 import 'package:petcare/features/pets/widgets/profile_memo_field.dart';
 import 'package:petcare/features/pets/widgets/tools_grid_section.dart';
-import 'package:petcare/ui/theme/app_gradients.dart';
 import 'package:petcare/ui/widgets/common_widgets.dart';
 import 'package:petcare/utils/app_logger.dart';
 
@@ -390,7 +389,15 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
           children: [
             DecoratedBox(
               decoration: BoxDecoration(
-                gradient: AppGradients.softBackground(cs),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    cs.primaryContainer.withOpacity(0.35),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.45],
+                ),
               ),
               child: Padding(
                 padding: EdgeInsets.only(

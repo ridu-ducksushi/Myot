@@ -19,6 +19,7 @@ class AppTheme {
       colorScheme: colorScheme,
       brightness: Brightness.light,
       fontFamily: 'Pretendard',
+      scaffoldBackgroundColor: Colors.white,
 
       // App Bar Theme
       appBarTheme: AppBarTheme(
