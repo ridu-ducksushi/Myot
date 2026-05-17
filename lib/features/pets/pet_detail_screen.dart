@@ -389,14 +389,14 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
           children: [
             DecoratedBox(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    cs.primaryContainer.withOpacity(0.35),
+                    Color(0xFFFDECF0),
                     Colors.transparent,
                   ],
-                  stops: const [0.0, 0.45],
+                  stops: [0.0, 0.45],
                 ),
               ),
               child: Padding(
