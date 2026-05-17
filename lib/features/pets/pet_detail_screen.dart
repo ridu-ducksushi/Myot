@@ -389,14 +389,16 @@ class _PetDetailScreenState extends ConsumerState<PetDetailScreen> {
           children: [
             DecoratedBox(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
+                  // fade end 는 같은 RGB + alpha 0 — Colors.transparent (검은색 alpha 0) 사용 시
+                  // RGB 보간이 검은색을 섞어 회색 톤 fade 가 됨 (Flutter 알려진 함정)
+                  colors: const [
                     Color(0xFFFDECF0),
-                    Colors.transparent,
+                    Color(0x00FDECF0),
                   ],
-                  stops: [0.0, 0.45],
+                  stops: const [0.0, 0.45],
                 ),
               ),
               child: Padding(
