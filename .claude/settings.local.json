@@ -10,7 +10,18 @@
       "Bash(./gradlew:*)",
       "Bash(flutter devices:*)",
       "Bash(flutter run:*)",
-      "Bash($ANDROID_HOME/platform-tools/adb devices)"
+      "Bash($ANDROID_HOME/platform-tools/adb devices)",
+      "WebFetch(domain:fonts.google.com)",
+      "Bash(adb devices *)",
+      "PowerShell(flutter devices *)",
+      "PowerShell(flutter emulators *)",
+      "PowerShell(Test-Path *)",
+      "PowerShell($adb = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\"; & $adb devices)",
+      "PowerShell($adb = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\"; & $adb -s emulator-5554 shell getprop sys.boot_completed)",
+      "PowerShell(flutter run *)",
+      "PowerShell($adb = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\"; & $adb -s emulator-5554 shell df -h /data 2>&1)",
+      "Bash(\"/c/Users/DDIYU/AppData/Local/Android/Sdk/platform-tools/adb.exe\" -s emulator-5554 shell getprop sys.boot_completed)",
+      "Bash(tasklist)"
     ]
   }
 }
