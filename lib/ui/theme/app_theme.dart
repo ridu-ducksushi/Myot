@@ -33,7 +33,14 @@ class AppTheme {
           fontWeight: FontWeight.w600,
           color: colorScheme.onSurface,
         ),
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        // statusBarColor 미지정 시 Android 가 기본 반투명 검정 스크림을 덮어
+        // 상단 그라데이션이 회색으로 보임 → 투명 + 대비 스크림 비활성 명시
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark, // Android: 어두운 아이콘
+          statusBarBrightness: Brightness.light, // iOS: 밝은 배경
+          systemStatusBarContrastEnforced: false,
+        ),
       ),
 
       // Card Theme
@@ -192,7 +199,13 @@ class AppTheme {
           fontWeight: FontWeight.w600,
           color: colorScheme.onSurface,
         ),
-        systemOverlayStyle: SystemUiOverlayStyle.light,
+        // 라이트 테마와 대칭 — 기본 스크림 제거, 다크 배경엔 밝은 아이콘
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light, // Android: 밝은 아이콘
+          statusBarBrightness: Brightness.dark, // iOS: 어두운 배경
+          systemStatusBarContrastEnforced: false,
+        ),
       ),
 
       // Card Theme
